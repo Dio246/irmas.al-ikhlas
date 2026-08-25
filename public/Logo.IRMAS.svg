@@ -1,0 +1,101 @@
+<svg viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer Green Ring -->
+  <circle cx="120" cy="120" r="114" fill="#FFFFFF" stroke="#15803D" stroke-width="9" />
+  
+  <!-- Inner Green Dome Circle Background -->
+  <circle cx="120" cy="98" r="68" fill="url(#greenSkyGrad)" />
+  <defs>
+    <linearGradient id="greenSkyGrad" x1="120" y1="30" x2="120" y2="166" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22C55E" />
+      <stop offset="0.6" stop-color="#16A34A" />
+      <stop offset="1" stop-color="#15803D" />
+    </linearGradient>
+  </defs>
+
+  <!-- Glowing Stars in Sky -->
+  <circle cx="92" cy="62" r="2.5" fill="#FEF08A" />
+  <circle cx="145" cy="56" r="2" fill="#FEF08A" />
+  <circle cx="152" cy="74" r="2" fill="#FEF08A" />
+  <circle cx="85" cy="80" r="2" fill="#FEF08A" />
+
+  <!-- Golden Crescent Moon -->
+  <path
+    d="M102 46C96 52 94 65 99 76C103 86 112 92 120 94C111 96 98 90 92 78C86 66 88 52 96 44C98 42 100 44 102 46Z"
+    fill="#FEF08A"
+    opacity="0.95"
+  />
+
+  <!-- Mosque Minaret (Right Side) -->
+  <rect x="136" y="60" width="10" height="42" rx="2" fill="#E2E8F0" stroke="#0F766E" stroke-width="1" />
+  <rect x="134" y="68" width="14" height="3" rx="1" fill="#047857" />
+  <path d="M136 60L141 48L146 60H136Z" fill="#15803D" stroke="#FEF08A" stroke-width="1" />
+  <circle cx="141" cy="46" r="2.5" fill="#FBBF24" />
+
+  <!-- Main Mosque Dome -->
+  <path
+    d="M120 48C108 58 92 74 92 98H148C148 74 132 58 120 48Z"
+    fill="#14532D"
+    stroke="#86EFAC"
+    stroke-width="2"
+  />
+  <path
+    d="M120 54C112 62 100 75 100 96H140C140 75 128 62 120 54Z"
+    fill="#166534"
+  />
+  <circle cx="120" cy="45" r="3.5" fill="#FBBF24" />
+
+  <!-- Dome Windows -->
+  <rect x="108" y="84" width="4" height="12" rx="2" fill="#DCFCE7" />
+  <rect x="118" y="82" width="4" height="14" rx="2" fill="#DCFCE7" />
+  <rect x="128" y="84" width="4" height="12" rx="2" fill="#DCFCE7" />
+
+  <!-- Open Al-Qur'an Base -->
+  <path
+    d="M120 134C104 122 72 124 54 135C66 148 94 148 120 144Z"
+    fill="#FFFFFF"
+    stroke="#047857"
+    stroke-width="2.5"
+  />
+  <path
+    d="M120 138C106 128 78 130 62 140C72 150 96 150 120 147Z"
+    fill="#F8FAFC"
+    stroke="#334155"
+    stroke-width="1.5"
+  />
+  <path
+    d="M120 134C136 122 168 124 186 135C174 148 146 148 120 144Z"
+    fill="#FFFFFF"
+    stroke="#047857"
+    stroke-width="2.5"
+  />
+  <path
+    d="M120 138C134 128 162 130 178 140C168 150 144 150 120 147Z"
+    fill="#F8FAFC"
+    stroke="#334155"
+    stroke-width="1.5"
+  />
+  <polygon points="117,133 123,133 122,150 118,150" fill="#047857" />
+
+  <!-- IRMAS al-ikhlas Typography -->
+  <text
+    x="120"
+    y="172"
+    text-anchor="middle"
+    fill="#14532D"
+    font-size="18"
+    font-weight="900"
+    font-family="system-ui, -apple-system, sans-serif"
+    letter-spacing="2.5"
+  >IRMAS</text>
+
+  <text
+    x="120"
+    y="196"
+    text-anchor="middle"
+    fill="#064E3B"
+    font-size="23"
+    font-weight="800"
+    font-family="'Georgia', serif"
+    letter-spacing="0.5"
+  >al-ikhlas</text>
+</svg>

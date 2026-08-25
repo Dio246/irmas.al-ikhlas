@@ -1,0 +1,6 @@
+{
+  "name": "IRMAS Masjid Jami'e Al-Ikhlas",
+  "description": "Website profil dan galeri kegiatan Ikatan Remaja Masjid (IRMAS) Masjid Jami'e Al-Ikhlas dengan tema putih hijau.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
