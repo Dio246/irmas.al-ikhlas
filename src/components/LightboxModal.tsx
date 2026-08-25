@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, MapPin, Users, Tag, Share2, Check, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { GalleryItem } from '../types';
+import { resolveAsset } from '../lib/assetHelper';
 
 interface LightboxModalProps {
   item: GalleryItem | null;
@@ -81,7 +82,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
           <div className="relative flex-1 flex items-center justify-center p-2 overflow-hidden">
             <img
               key={currentImage}
-              src={currentImage}
+              src={resolveAsset(currentImage)}
               alt={`${item.title} - Foto ${activePhotoIdx + 1}`}
               className="w-full h-full max-h-[62vh] object-contain transition-all duration-300"
               referrerPolicy="no-referrer"
@@ -132,7 +133,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
                   }`}
                 >
                   <img
-                    src={imgUrl}
+                    src={resolveAsset(imgUrl)}
                     alt={`Thumbnail ${idx + 1}`}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"

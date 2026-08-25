@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveAsset } from '../lib/assetHelper';
 
 interface IrmasLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -29,7 +30,7 @@ export const IrmasLogo: React.FC<IrmasLogoProps> = ({
       <div className={`relative ${badgeSizeClass} shrink-0 rounded-full overflow-hidden shadow-md group transition-transform hover:scale-105 bg-white`}>
         {!imageError ? (
           <img
-            src="/Logo.IRMAS.png"
+            src={resolveAsset('/Logo.IRMAS.png')}
             alt="Logo Resmi IRMAS Masjid Jamie Al-Ikhlas Jatibaru"
             className="w-full h-full object-cover rounded-full"
             onError={() => setImageError(true)}

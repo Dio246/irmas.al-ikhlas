@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Target, Shield, BookOpen, Layers, FileText, Scale, Phone } from 'lucide-react';
 import { mosqueProfile, visionMission, pengurusList } from '../data/irmasData';
 import { AdArtViewer } from './AdArtViewer';
+import { resolveAsset } from '../lib/assetHelper';
 
 interface ProfileSectionProps {
   activeTab?: 'profil' | 'visi' | 'pengurus' | 'adart';
@@ -127,7 +128,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="lg:col-span-6">
               <div className="relative rounded-2xl overflow-hidden border border-emerald-100 shadow-xl bg-slate-900">
                 <img
-                  src="/foto_putra_putri_jamaah.jpeg"
+                  src={resolveAsset('/foto_putra_putri_jamaah.jpeg')}
                   alt="Putra-Putri Jamaah Remaja Masjid Jamie Al-Ikhlas"
                   className="w-full h-64 sm:h-80 md:h-96 object-cover hover:scale-105 transition-transform duration-700"
                 />
@@ -271,7 +272,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     <div className="flex items-center gap-3 sm:gap-4 mb-3.5">
                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-emerald-500/30 shrink-0 shadow-xs group-hover:scale-105 transition-transform bg-slate-100">
                         <img
-                          src={p.avatar}
+                          src={resolveAsset(p.avatar)}
                           alt={p.name}
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"

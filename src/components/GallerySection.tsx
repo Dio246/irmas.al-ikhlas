@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Image as ImageIcon, Search, Calendar, MapPin, Users, Plus, Maximize2, Check, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { galleryData as initialGalleryData } from '../data/irmasData';
 import { GalleryItem, GalleryCategory } from '../types';
+import { resolveAsset } from '../lib/assetHelper';
 
 interface GallerySectionProps {
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
@@ -70,7 +71,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
               className="w-full h-full shrink-0 snap-center relative cursor-pointer group/img"
             >
               <img
-                src={imgUrl}
+                src={resolveAsset(imgUrl)}
                 alt={`${item.title} - Foto ${idx + 1}`}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
                 referrerPolicy="no-referrer"
