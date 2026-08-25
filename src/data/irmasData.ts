@@ -65,7 +65,7 @@ export const pengurusList: Pengurus[] = [
     name: "M. Addym Jaka Anugrah",
     role: "Ketua IRMAS",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Bertanggung jawab terhadap kesinambungan dan keberlangsungan organisasi baik internal maupun eksternal demi ridho Allah SWT.",
     whatsapp: "+62 838-6481-993",
     phone: "0838-6481-993"
@@ -75,7 +75,7 @@ export const pengurusList: Pengurus[] = [
     name: "Danish Alfisyahri P. S.",
     role: "Wakil Ketua",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Mengkoordinir kelancaran program kerja dan siap menyokong kepemimpinan organisasi.",
     whatsapp: "+62 878-4753-3981",
     phone: "0878-4753-3981"
@@ -85,7 +85,7 @@ export const pengurusList: Pengurus[] = [
     name: "Dio Surya Pratama",
     role: "Sekretaris 1",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Bertanggung jawab terhadap penataan administrasi, surat-menyurat, dan dokumentasi resmi organisasi sesuai AD/ART.",
     whatsapp: "+62 857-1545-8316",
     phone: "0857-1545-8316"
@@ -95,7 +95,7 @@ export const pengurusList: Pengurus[] = [
     name: "Reihana Hanno M",
     role: "Sekretaris 2",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Mendukung kelancaran tata kelola arsip, notulensi rapat, dan ketertiban administrasi persyarikatan.",
     whatsapp: "+62 822-4665-7095",
     phone: "0822-4665-7095"
@@ -105,7 +105,7 @@ export const pengurusList: Pengurus[] = [
     name: "Sabrina Zakiyyah Amani",
     role: "Bendahara 1",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Bertanggung jawab terhadap pengelolaan keuangan kas dan inventarisasi persyarikatan secara amanah dan transparan.",
     whatsapp: "+62 813-1513-0521",
     phone: "0813-1513-0521"
@@ -115,7 +115,7 @@ export const pengurusList: Pengurus[] = [
     name: "Alifah Huwaida",
     role: "Bendahara 2",
     division: "BPH",
-    avatar: "/Logo.IRMAS.png",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Mencatat sirkulasi uang kas iuran anggota, sumbangan masyarakat, dan pertanggungjawaban dana kegiatan.",
     whatsapp: "+62 831-9865-9462",
     phone: "0831-9865-9462"
