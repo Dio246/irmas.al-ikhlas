@@ -393,12 +393,6 @@ export const adArtOfficialDocument: AdArtDocument = {
 
 export const musyawarahPhotos: { id: string; url: string; title: string; desc: string }[] = [
   {
-    id: "musyawarah-0",
-    url: "/dokumentasi musyawarah/WhatsApp Image 2026-08-25 at 00.06.49.jpeg",
-    title: "Dokumentasi Bersama Musyawarah AD/ART IRMAS",
-    desc: "Foto dokumentasi kebersamaan musyawarah pembentukan dan pengesahan Anggaran Dasar & Anggaran Rumah Tangga IRMAS Masjid Jamie Al-Ikhlas Periode 2025/2027."
-  },
-  {
     id: "musyawarah-1",
     url: "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl.webp",
     title: "Pembukaan & Sambutan Musyawarah AD/ART",
@@ -566,9 +560,8 @@ export const galleryData: GalleryItem[] = [
     category: "pelatihan",
     date: "20 Desember 2024",
     location: "Masjid Jamie Al-Ikhlas, Graha Bhakti Kodam Jaya",
-    imageUrl: "/dokumentasi musyawarah/WhatsApp Image 2026-08-25 at 00.06.49.jpeg",
+    imageUrl: "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl.webp",
     images: [
-      "/dokumentasi musyawarah/WhatsApp Image 2026-08-25 at 00.06.49.jpeg",
       "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl.webp",
       "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (1).webp",
       "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (2).webp",
