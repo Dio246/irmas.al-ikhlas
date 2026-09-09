@@ -148,7 +148,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <a
                 href={mosqueProfile.mapsUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-emerald-300 hover:text-emerald-200 font-semibold underline underline-offset-4 min-h-[36px]"
               >
                 <span>Buka Google Maps</span>
@@ -175,7 +175,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   key={item.name}
                   href={item.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-800/80 bg-emerald-900/40 hover:bg-emerald-900/80 hover:border-emerald-700 transition-all duration-200 group hover:translate-x-1 shadow-xs min-h-[44px]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">

@@ -37,6 +37,7 @@ export default function App() {
   }, []);
 
   const scrollToSection = (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => {
+    setActiveSection(id);
     if (tab) {
       setProfileTab(tab);
     }
@@ -54,6 +55,7 @@ export default function App() {
       {/* 1. Header Navigation Bar */}
       <Navbar 
         activeSection={activeSection}
+        activeProfileTab={profileTab}
         onNavigate={scrollToSection}
       />
 

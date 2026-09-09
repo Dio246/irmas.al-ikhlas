@@ -9,6 +9,14 @@ interface LightboxModalProps {
   onClose: () => void;
 }
 
+function getOptimizedThumb(url: string | undefined): string {
+  if (!url) return '';
+  if (url.includes('lh3.googleusercontent.com/d/') && !url.includes('=')) {
+    return `${url}=w300`;
+  }
+  return resolveAsset(url);
+}
+
 export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex = 0, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(initialIndex);
@@ -133,8 +141,10 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
                   }`}
                 >
                   <img
-                    src={resolveAsset(imgUrl)}
+                    src={getOptimizedThumb(imgUrl)}
                     alt={`Thumbnail ${idx + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />

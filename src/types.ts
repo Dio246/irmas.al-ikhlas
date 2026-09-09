@@ -11,6 +11,8 @@ export interface GalleryItem {
   description: string;
   participants?: number;
   highlight?: boolean;
+  driveUrl?: string;
+  driveFolderUrl?: string;
 }
 
 export interface Pengurus {

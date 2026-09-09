@@ -4,10 +4,11 @@ import { IrmasLogo } from './IrmasLogo';
 
 interface NavbarProps {
   activeSection: string;
+  activeProfileTab?: 'profil' | 'visi' | 'pengurus' | 'adart';
   onNavigate?: (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab = 'profil', onNavigate }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -26,6 +27,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
     { id: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
     { id: 'kontak', label: 'Kontak', icon: PhoneCall },
   ];
+
+  const isItemActive = (item: typeof navItems[0]) => {
+    if (activeSection !== item.id) return false;
+    if (item.id === 'profil') {
+      if (item.tab === 'pengurus') {
+        return activeProfileTab === 'pengurus';
+      }
+      return activeProfileTab !== 'pengurus';
+    }
+    return true;
+  };
 
   const handleNavClick = (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => {
     setMobileMenuOpen(false);
@@ -66,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
           {/* Desktop Nav Items */}
           <nav className="hidden md:flex items-center gap-1.5">
             {navItems.map((item, idx) => {
-              const isActive = activeSection === item.id;
+              const isActive = isItemActive(item);
               return (
                 <button
                   key={`${item.id}-${item.tab || idx}`}
@@ -116,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
           <div className="flex flex-col gap-1.5">
             {navItems.map((item, idx) => {
               const Icon = item.icon;
-              const isActive = activeSection === item.id;
+              const isActive = isItemActive(item);
               return (
                 <button
                   key={`m-${item.id}-${item.tab || idx}`}
