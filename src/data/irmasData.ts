@@ -14,7 +14,7 @@ export const mosqueProfile: MosqueProfile = {
   district: "Kecamatan Cikarang Timur",
   regency: "Kabupaten Bekasi",
   city: "Cikarang Timur, Kab. Bekasi",
-  mapsUrl: "https://maps.google.com/?q=Perumahan+Graha+Bhakti+Kodam+Jaya+Jatibaru+Cikarang+Timur",
+  mapsUrl: "https://maps.app.goo.gl/HJzHLMMvPFsDJxVN6",
   establishedDate: "20 Desember 2024",
   establishedYear: "2024",
   activePeriod: "2025/2027",

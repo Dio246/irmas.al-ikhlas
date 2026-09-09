@@ -26,8 +26,7 @@ import {
   Copy,
   CheckCheck,
   Settings2,
-  Info,
-  FileText
+  Info
 } from 'lucide-react';
 import { galleryData as initialGalleryData } from '../data/irmasData';
 import { GalleryItem, GalleryCategory } from '../types';
@@ -133,6 +132,19 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
     scrollToPhoto(prevIdx);
   };
 
+  // Rolling 3-dot pagination window: displays at most 3 dots at any time,
+  // sliding smoothly to the right as the user scrolls through photos so it never overlaps the jamaah badge
+  const totalDots = imagesList.length;
+  const maxVisibleDots = 3;
+  const dotStartIndex = totalDots > maxVisibleDots
+    ? Math.min(Math.max(0, activeIdx - 1), totalDots - maxVisibleDots)
+    : 0;
+
+  const visibleDotIndices = Array.from(
+    { length: Math.min(maxVisibleDots, totalDots) },
+    (_, i) => dotStartIndex + i
+  );
+
   return (
     <div
       id={`gallery-card-${item.id}`}
@@ -224,25 +236,38 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 
         {/* Participants Pill if available */}
         {item.participants && (
-          <span className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 pointer-events-none">
+          <span className="absolute bottom-2.5 right-3 bg-black/65 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 pointer-events-none shadow-xs">
             <Users className="w-3 h-3 text-emerald-300" />
-            {item.participants} Jamaah
+            <span>{item.participants} Jamaah</span>
           </span>
         )}
 
-        {/* Pagination Dots at Bottom Center */}
+        {/* Compact Rolling 3-Dot Pagination (Max 3 dots, scrolls smoothly to right without overlapping Jamaah badge) */}
         {imagesList.length > 1 && (
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-xs">
-            {imagesList.map((_, dotIdx) => (
-              <button
-                key={dotIdx}
-                onClick={(e) => scrollToPhoto(dotIdx, e)}
-                aria-label={`Lihat foto ${dotIdx + 1}`}
-                className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                  activeIdx === dotIdx ? 'bg-emerald-400 w-4' : 'bg-white/50 hover:bg-white/80'
-                }`}
-              />
-            ))}
+          <div 
+            className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center gap-1.5 z-10 bg-black/50 px-2 py-1 rounded-full backdrop-blur-xs shadow-xs pointer-events-auto"
+            title={`Foto ${activeIdx + 1} dari ${imagesList.length}`}
+          >
+            {visibleDotIndices.map((dotIdx) => {
+              const isActive = activeIdx === dotIdx;
+              const isLeftEdge = dotIdx === dotStartIndex && dotStartIndex > 0 && !isActive;
+              const isRightEdge = dotIdx === dotStartIndex + maxVisibleDots - 1 && dotStartIndex + maxVisibleDots < totalDots && !isActive;
+
+              return (
+                <button
+                  key={dotIdx}
+                  onClick={(e) => scrollToPhoto(dotIdx, e)}
+                  aria-label={`Lihat foto ${dotIdx + 1} dari ${imagesList.length}`}
+                  className={`transition-all duration-300 cursor-pointer rounded-full ${
+                    isActive
+                      ? 'bg-emerald-400 w-3.5 h-1.5 shadow-xs'
+                      : isLeftEdge || isRightEdge
+                      ? 'bg-white/50 hover:bg-white/80 w-1 h-1'
+                      : 'bg-white/70 hover:bg-white w-1.5 h-1.5'
+                  }`}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -889,7 +914,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
 
                 {/* Common Activity Metadata */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Judul Kegiatan *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Judul Kegiatan</label>
                   <input
                     type="text"
                     required
@@ -906,12 +931,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
 
                 {/* Deskripsi Singkat Kegiatan - Ditempatkan langsung di bawah Judul agar jelas dan mudah diisi */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Deskripsi Singkat Kegiatan</span>
+                  <div className="mb-1">
+                    <label className="text-xs font-bold text-slate-700">
+                      Deskripsi Singkat Kegiatan
                     </label>
-                    <span className="text-[10px] text-slate-400">Ringkasan cerita & hikmah kegiatan</span>
                   </div>
                   <textarea
                     rows={3}
