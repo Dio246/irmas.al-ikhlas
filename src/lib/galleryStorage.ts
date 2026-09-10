@@ -47,8 +47,8 @@ export async function loadCustomGalleryItems(): Promise<GalleryItem[]> {
       req.onsuccess = () => {
         const results = req.result as GalleryItem[];
         if (results && results.length > 0) {
-          // Sort newest first
-          resolve(results.reverse());
+          // Keep chronological order (first uploaded to last uploaded, placed at the bottom)
+          resolve(results);
         } else {
           // Fallback to localStorage check
           resolve(loadFromLocalStorage());
@@ -94,9 +94,9 @@ export async function saveCustomGalleryItem(item: GalleryItem): Promise<void> {
     // Fallback to localStorage
     try {
       const current = loadFromLocalStorage();
-      const updated = [item, ...current.filter((it) => it.id !== item.id)];
+      const updated = [...current.filter((it) => it.id !== item.id), item];
       // Keep only metadata in localStorage if string is too large
-      localStorage.setItem('irmas_custom_gallery_items', JSON.stringify(updated.slice(0, 20)));
+      localStorage.setItem('irmas_custom_gallery_items', JSON.stringify(updated.slice(-20)));
     } catch {
       // ignore
     }

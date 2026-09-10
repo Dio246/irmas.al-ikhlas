@@ -20,7 +20,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, 
         
         {/* Top Islamic Calligraphy Greeting */}
         <div className="mb-4 sm:mb-6">
-          <p className="font-arabic text-xl sm:text-2xl md:text-3xl text-emerald-900 tracking-wide font-normal leading-relaxed">
+          <p className="font-arabic text-lg sm:text-2xl md:text-3xl text-emerald-900 tracking-normal font-normal leading-relaxed">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </p>
           <p className="text-[11px] sm:text-xs text-emerald-700/80 mt-1 font-medium italic">
@@ -29,7 +29,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, 
         </div>
 
         {/* Tag Badge */}
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-100/90 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-bold px-3 sm:px-3.5 py-1.5 rounded-full mb-4 sm:mb-6 shadow-xs max-w-full truncate">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-100/90 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-bold px-3 sm:px-3.5 py-1.5 rounded-full mb-4 sm:mb-6 shadow-xs max-w-full">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
           <span className="truncate">Pedoman AD/ART Periode {mosqueProfile.activePeriod}</span>
         </div>
@@ -42,7 +42,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, 
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-tight mb-3 sm:mb-5 max-w-4xl mx-auto">
+        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-snug sm:leading-tight mb-3 sm:mb-5 max-w-4xl mx-auto">
           <span className="block text-slate-900">
             Ikatan Remaja Masjid
           </span>
@@ -52,13 +52,20 @@ export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, 
         </h1>
 
         {/* Location Subtitle */}
-        <p className="text-xs sm:text-sm font-semibold text-emerald-800 flex items-center justify-center gap-1.5 mb-3 sm:mb-4 px-2">
-          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
-          <span className="leading-snug">{mosqueProfile.address}</span>
-        </p>
+        <div className="mb-3.5 sm:mb-4 px-3 max-w-lg mx-auto text-center">
+          <p className="text-xs sm:text-sm font-semibold text-emerald-800 leading-normal text-center">
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+              <span>{mosqueProfile.housing} {mosqueProfile.neighborhood}</span>
+            </span>
+            <span className="block text-emerald-700 font-medium mt-0.5 sm:mt-1">
+              {mosqueProfile.village}, Kec. Cikarang Timur, Kab. Bekasi, Jawa Barat
+            </span>
+          </p>
+        </div>
 
         {/* Sub-description */}
-        <p className="text-sm sm:text-base md:text-lg text-slate-600 leading-relaxed mb-6 sm:mb-8 max-w-2xl mx-auto font-normal px-2">
+        <p className="text-xs sm:text-base md:text-lg text-slate-600 leading-relaxed mb-6 sm:mb-8 max-w-2xl mx-auto font-normal px-3">
           {mosqueProfile.shortDesc}
         </p>
 

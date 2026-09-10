@@ -26,7 +26,13 @@ import {
   Copy,
   CheckCheck,
   Settings2,
-  Info
+  Info,
+  LayoutGrid,
+  BookOpen,
+  HeartHandshake,
+  Compass,
+  GraduationCap,
+  Moon
 } from 'lucide-react';
 import { galleryData as initialGalleryData } from '../data/irmasData';
 import { GalleryItem, GalleryCategory } from '../types';
@@ -90,109 +96,50 @@ interface ActivityCardProps {
 const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onSelectImage }) => {
   const imagesList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const [activeIdx, setActiveIdx] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isProgrammaticScrollRef = useRef(false);
-  const programmaticTimerRef = useRef<number | null>(null);
-  const scrollSettledTimerRef = useRef<number | null>(null);
 
-  // Smooth scroll to target photo without triggering conflicting scroll feedback
-  const scrollToPhoto = (index: number, e?: React.MouseEvent) => {
+  // Lightweight touch tracking that NEVER conflicts with mobile vertical scrolling
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (index < 0 || index >= imagesList.length) return;
-
-    if (programmaticTimerRef.current) {
-      window.clearTimeout(programmaticTimerRef.current);
-    }
-    isProgrammaticScrollRef.current = true;
-    setActiveIdx(index);
-
-    if (scrollContainerRef.current) {
-      const width = scrollContainerRef.current.clientWidth;
-      scrollContainerRef.current.scrollTo({
-        left: index * width,
-        behavior: 'smooth'
-      });
-    }
-
-    programmaticTimerRef.current = window.setTimeout(() => {
-      isProgrammaticScrollRef.current = false;
-    }, 450);
+    setActiveIdx((prev) => (prev + 1) % imagesList.length);
   };
 
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const nextIdx = (activeIdx + 1) % imagesList.length;
-    scrollToPhoto(nextIdx);
+  const handlePrev = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setActiveIdx((prev) => (prev - 1 + imagesList.length) % imagesList.length);
   };
 
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const prevIdx = (activeIdx - 1 + imagesList.length) % imagesList.length;
-    scrollToPhoto(prevIdx);
-  };
-
-  // Debounced and thresholded scroll listener:
-  // Prevents rapid flipping between numbers at the 50% boundary during drags/swipes
-  const handleScroll = () => {
-    if (isProgrammaticScrollRef.current) return;
-
-    if (scrollContainerRef.current) {
-      const { scrollLeft, clientWidth } = scrollContainerRef.current;
-      if (clientWidth > 0) {
-        const raw = scrollLeft / clientWidth;
-        const nearest = Math.round(raw);
-        // Only update when scroll position is convincingly settled near the center of the photo
-        if (Math.abs(raw - nearest) < 0.35 && nearest >= 0 && nearest < imagesList.length) {
-          if (nearest !== activeIdx) {
-            setActiveIdx(nearest);
-          }
-        }
-      }
-    }
-
-    // Debounced fallback to lock in the final settled index
-    if (scrollSettledTimerRef.current) {
-      window.clearTimeout(scrollSettledTimerRef.current);
-    }
-    scrollSettledTimerRef.current = window.setTimeout(() => {
-      if (scrollContainerRef.current && !isProgrammaticScrollRef.current) {
-        const { scrollLeft, clientWidth } = scrollContainerRef.current;
-        if (clientWidth > 0) {
-          const finalIndex = Math.round(scrollLeft / clientWidth);
-          if (finalIndex >= 0 && finalIndex < imagesList.length && finalIndex !== activeIdx) {
-            setActiveIdx(finalIndex);
-          }
-        }
-      }
-    }, 80);
-  };
-
-  // Hardware-accelerated native scrollend detection
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const onScrollEnd = () => {
-      if (container.clientWidth > 0) {
-        const finalIndex = Math.round(container.scrollLeft / container.clientWidth);
-        if (finalIndex >= 0 && finalIndex < imagesList.length) {
-          setActiveIdx(finalIndex);
-        }
-      }
-      isProgrammaticScrollRef.current = false;
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (imagesList.length <= 1) return;
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
     };
+  };
 
-    container.addEventListener('scrollend', onScrollEnd);
-    return () => {
-      container.removeEventListener('scrollend', onScrollEnd);
-      if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
-      if (scrollSettledTimerRef.current) window.clearTimeout(scrollSettledTimerRef.current);
-    };
-  }, [imagesList.length]);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || imagesList.length <= 1) return;
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
 
-  // Rolling 3-dot pagination calculation:
-  // Shows max 3 dots, sliding to the right as activeIdx increases.
-  // Stable slots ensure buttons are NEVER unmounted/remounted during sliding, avoiding visual pops.
+    // Detect intentional horizontal swipe (>35px, primarily horizontal, <500ms)
+    // Completely bypasses vertical gestures to preserve silky-smooth vertical page scroll
+    if (Math.abs(deltaX) > 35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3 && deltaTime < 500) {
+      if (deltaX < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+  };
+
+  // Rolling 3-dot pagination calculation
   const totalDots = imagesList.length;
   const maxVisibleDots = Math.min(3, totalDots);
   const dotStartIndex = totalDots <= 3
@@ -216,35 +163,25 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
   return (
     <div
       id={`gallery-card-${item.id}`}
-      className="group relative bg-white rounded-2xl overflow-hidden border border-slate-200/80 hover:border-emerald-400 hover:shadow-xl transition-all duration-300 flex flex-col [content-visibility:auto] [contain-intrinsic-size:380px]"
+      className="group relative bg-white rounded-2xl overflow-hidden border border-slate-200/80 hover:border-emerald-400 hover:shadow-xl transition-shadow duration-200 flex flex-col"
     >
-      {/* Interactive Horizontal Scroll Photo Track */}
-      <div className="relative h-60 sm:h-64 w-full bg-slate-950 overflow-hidden select-none">
-        
-        {/* Horizontal Scrollable Container with touch-pan-y to keep mobile vertical scroll silky-smooth */}
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth touch-pan-y"
-        >
-          {imagesList.map((imgUrl, idx) => (
-            <div
-              key={idx}
-              onClick={() => onSelectImage(item, idx)}
-              className="w-full h-full shrink-0 snap-center relative cursor-pointer group/img bg-slate-950"
-            >
-              <img
-                src={getOptimizedThumbUrl(imgUrl)}
-                alt={`${item.title} - Foto ${idx + 1}`}
-                loading={idx === 0 ? "eager" : "lazy"}
-                decoding="async"
-                className="w-full h-full object-cover transition-transform duration-300 md:group-hover/img:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover/img:opacity-80 transition-opacity pointer-events-none" />
-            </div>
-          ))}
-        </div>
+      {/* Interactive Photo Track - Single active image with lightweight gesture support */}
+      <div 
+        className="relative h-60 sm:h-64 w-full bg-slate-950 overflow-hidden select-none cursor-pointer"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => onSelectImage(item, activeIdx)}
+      >
+        <img
+          key={activeIdx}
+          src={getOptimizedThumbUrl(imagesList[activeIdx])}
+          alt={`${item.title} - Foto ${activeIdx + 1}`}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:scale-105"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover:opacity-80 transition-opacity pointer-events-none" />
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
@@ -270,36 +207,39 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
               aria-label="Foto sebelumnya"
               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-emerald-700 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-xs z-10 shadow-md opacity-80 group-hover:opacity-100 active:scale-90"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 shrink-0" />
             </button>
             <button
               onClick={handleNext}
               aria-label="Foto berikutnya"
               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-emerald-700 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-xs z-10 shadow-md opacity-80 group-hover:opacity-100 active:scale-90"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 shrink-0" />
             </button>
           </>
         )}
 
         {/* Quick Zoom Action Button */}
         <button
-          onClick={() => onSelectImage(item, activeIdx)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectImage(item, activeIdx);
+          }}
           aria-label="Perbesar foto"
           className="absolute bottom-3 left-3 w-7 h-7 rounded-full bg-black/50 hover:bg-emerald-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer"
         >
-          <Maximize2 className="w-3.5 h-3.5" />
+          <Maximize2 className="w-3.5 h-3.5 shrink-0" />
         </button>
 
         {/* Participants Pill if available */}
         {item.participants && (
           <span className="absolute bottom-2.5 right-3 bg-black/65 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 pointer-events-none shadow-xs">
-            <Users className="w-3 h-3 text-emerald-300" />
+            <Users className="w-3 h-3 text-emerald-300 shrink-0" />
             <span>{item.participants} Jamaah</span>
           </span>
         )}
 
-        {/* Compact Rolling 3-Dot Pagination (Max 3 dots, scrolls smoothly to right without overlapping Jamaah badge) */}
+        {/* Compact Rolling 3-Dot Pagination */}
         {imagesList.length > 1 && (
           <div 
             className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center gap-1.5 z-10 bg-black/55 px-2.5 py-1 rounded-full backdrop-blur-xs shadow-xs pointer-events-auto min-w-[48px] h-5 select-none"
@@ -308,7 +248,10 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
             {slots.map((slot) => (
               <button
                 key={slot.slotIdx}
-                onClick={(e) => scrollToPhoto(slot.targetPhotoIdx, e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveIdx(slot.targetPhotoIdx);
+                }}
                 aria-label={`Lihat foto ${slot.targetPhotoIdx + 1} dari ${imagesList.length}`}
                 className={`transition-all duration-200 cursor-pointer rounded-full shrink-0 ${
                   slot.isActive
@@ -355,7 +298,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
                 title={item.driveFolderUrl ? `Buka folder Google Drive untuk "${item.title}"` : "Buka di Google Drive"}
               >
                 <span>{item.driveFolderUrl ? 'Buka Folder' : 'Buka di Drive'}</span>
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
             )}
           </div>
@@ -363,7 +306,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
           <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-emerald-600" />
+            <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
             <span>{item.date}</span>
           </div>
           <div className="flex items-center gap-1 max-w-[50%] truncate">
@@ -377,14 +320,14 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 };
 
 export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage }) => {
-  // Load initial data merged with any saved custom items from localStorage
+  // Load initial data merged with any saved custom items from localStorage (appended at bottom)
   const [items, setItems] = useState<GalleryItem[]>(() => {
     try {
       const saved = localStorage.getItem('irmas_custom_gallery_items');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return [...parsed, ...initialGalleryData];
+          return [...initialGalleryData, ...parsed];
         }
       }
     } catch {
@@ -434,14 +377,14 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   const [addSuccessToast, setAddSuccessToast] = useState(false);
   const [lastSavedFolderUrl, setLastSavedFolderUrl] = useState<string | null>(null);
 
-  // Load custom items from IndexedDB asynchronously on mount
+  // Load custom items from IndexedDB asynchronously on mount (appended at bottom)
   useEffect(() => {
     loadCustomGalleryItems().then((customItems) => {
       if (customItems && customItems.length > 0) {
         setItems(prev => {
           const existingIds = new Set(prev.map(p => p.id));
           const newItems = customItems.filter(c => !existingIds.has(c.id));
-          return [...newItems, ...prev];
+          return [...prev, ...newItems];
         });
       }
     });
@@ -468,14 +411,14 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     }
   }, []);
 
-  const categories: { id: GalleryCategory; label: string }[] = [
-    { id: 'semua', label: 'Semua Galeri' },
-    { id: 'kajian', label: 'Kajian Remaja' },
-    { id: 'sosial', label: 'Baksos & Sosial' },
-    { id: 'phbi', label: 'PHBI Akbar' },
-    { id: 'rihlah', label: 'Rihlah & Alam' },
-    { id: 'pelatihan', label: 'Pelatihan Skill' },
-    { id: 'ramadhan', label: 'Semarak Ramadhan' },
+  const categories: { id: GalleryCategory; label: string; icon: typeof LayoutGrid }[] = [
+    { id: 'semua', label: 'Semua Galeri', icon: LayoutGrid },
+    { id: 'kajian', label: 'Kajian Remaja', icon: BookOpen },
+    { id: 'sosial', label: 'Baksos & Sosial', icon: HeartHandshake },
+    { id: 'phbi', label: 'PHBI Akbar', icon: Sparkles },
+    { id: 'rihlah', label: 'Rihlah & Alam', icon: Compass },
+    { id: 'pelatihan', label: 'Pelatihan Skill', icon: GraduationCap },
+    { id: 'ramadhan', label: 'Semarak Ramadhan', icon: Moon },
   ];
 
   const filteredItems = items.filter((item) => {
@@ -586,9 +529,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     setIsValidatingFiles(false);
   };
 
-  // Persist gallery items
+  // Persist gallery items (appended to bottom, below Galeri 2)
   const persistNewItem = async (newItem: GalleryItem) => {
-    setItems(prev => [newItem, ...prev]);
+    setItems(prev => [...prev, newItem]);
     await saveCustomGalleryItem(newItem);
   };
 
@@ -708,26 +651,30 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 w-full scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                id={`cat-filter-${cat.id}`}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[38px] ${
-                  activeCategory === cat.id
-                    ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const CatIcon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  id={`cat-filter-${cat.id}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 min-h-[38px] ${
+                    activeCategory === cat.id
+                      ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <CatIcon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search Box & Actions */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 shrink-0" />
               <input
                 type="text"
                 placeholder="Cari kegiatan, waktu, atau lokasi..."

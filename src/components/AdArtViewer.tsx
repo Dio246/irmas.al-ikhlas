@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, FileText, Users, Clock, MapPin, Image as ImageIcon, ChevronLeft, Maximize2, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, FileText, Users, Clock, MapPin, Image as ImageIcon, ChevronLeft, Maximize2, X, BookOpen, FileCheck } from 'lucide-react';
 import { adArtOfficialDocument, mosqueProfile, musyawarahPhotos } from '../data/irmasData';
 
 export const AdArtViewer: React.FC = () => {
@@ -58,14 +58,14 @@ export const AdArtViewer: React.FC = () => {
             </button>
           </div>
 
-          <h3 className="text-lg sm:text-2xl font-black tracking-tight text-white leading-snug">
+          <h3 className="text-base sm:text-2xl font-black tracking-tight text-white leading-snug break-words">
             {adArtOfficialDocument.title}
           </h3>
           <p className="text-xs sm:text-sm text-emerald-200 mt-1 font-semibold">
             {adArtOfficialDocument.period} • {adArtOfficialDocument.locationHeader}
           </p>
           
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 mt-3 sm:mt-4 text-[11px] sm:text-xs text-emerald-100/90 pt-3 border-t border-emerald-700/60">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-[10px] sm:text-xs text-emerald-100/90 pt-3 border-t border-emerald-700/60">
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
               Ditetapkan: {adArtOfficialDocument.pengesahan.date}
@@ -86,40 +86,43 @@ export const AdArtViewer: React.FC = () => {
       <div className="flex flex-col gap-3 mb-5 sm:mb-6">
         
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-xs overflow-x-auto scrollbar-none touch-pan-x">
           <button
             onClick={() => setActiveTab('pasal')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+            className={`px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap min-h-[38px] ${
               activeTab === 'pasal' 
                 ? 'bg-emerald-700 text-white shadow-xs' 
                 : 'text-slate-600 hover:text-emerald-700'
             }`}
           >
-            Isi AD/ART (18 Pasal)
+            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+            <span>Isi AD/ART (18 Pasal)</span>
           </button>
           <button
             onClick={() => setActiveTab('kata-pengantar')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+            className={`px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap min-h-[38px] ${
               activeTab === 'kata-pengantar' 
                 ? 'bg-emerald-700 text-white shadow-xs' 
                 : 'text-slate-600 hover:text-emerald-700'
             }`}
           >
-            Kata Pengantar
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            <span>Kata Pengantar</span>
           </button>
           <button
             onClick={() => setActiveTab('pengesahan')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+            className={`px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap min-h-[38px] ${
               activeTab === 'pengesahan' 
                 ? 'bg-emerald-700 text-white shadow-xs' 
                 : 'text-slate-600 hover:text-emerald-700'
             }`}
           >
-            Tanda Tangan Pengesahan
+            <FileCheck className="w-3.5 h-3.5 shrink-0" />
+            <span>Tanda Tangan Pengesahan</span>
           </button>
           <button
             onClick={() => setActiveTab('dokumentasi')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap min-h-[38px] ${
+            className={`px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap min-h-[38px] ${
               activeTab === 'dokumentasi' 
                 ? 'bg-emerald-700 text-white shadow-xs' 
                 : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/60'
@@ -134,7 +137,7 @@ export const AdArtViewer: React.FC = () => {
         {activeTab === 'pasal' && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
@@ -172,17 +175,17 @@ export const AdArtViewer: React.FC = () => {
                   {/* BAB Header Accordion Toggle */}
                   <button
                     onClick={() => toggleBab(chapter.babNumber)}
-                    className="w-full px-4 sm:px-5 py-3.5 flex items-center justify-between bg-slate-50/70 hover:bg-emerald-50/50 text-left transition-colors cursor-pointer border-b border-slate-100"
+                    className="w-full px-3.5 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between bg-slate-50/70 hover:bg-emerald-50/50 text-left transition-colors cursor-pointer border-b border-slate-100 gap-2"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="text-[10.5px] sm:text-xs font-black text-emerald-800 bg-emerald-100/90 px-1.5 sm:px-2 py-0.5 rounded-md border border-emerald-200/80 shrink-0">
                         {chapter.babNumber}
                       </span>
-                      <h4 className="text-sm font-bold text-slate-900">
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug break-words">
                         {chapter.title}
                       </h4>
                     </div>
-                    <div className="text-slate-400">
+                    <div className="text-slate-400 shrink-0">
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-emerald-700" /> : <ChevronRight className="w-4 h-4" />}
                     </div>
                   </button>

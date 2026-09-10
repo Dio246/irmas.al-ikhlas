@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Shield, BookOpen, Layers, FileText, Scale, Phone } from 'lucide-react';
+import { Target, Shield, BookOpen, Layers, FileText, Scale, Phone, Users } from 'lucide-react';
 import { mosqueProfile, visionMission, pengurusList } from '../data/irmasData';
 import { AdArtViewer } from './AdArtViewer';
 import { resolveAsset } from '../lib/assetHelper';
@@ -47,40 +47,43 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <button
               id="tab-btn-profil"
               onClick={() => handleTabSelect('profil')}
-              className={`min-h-[40px] py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center text-center ${
+              className={`min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                 currentTab === 'profil'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tentang IRMAS
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span>Tentang IRMAS</span>
             </button>
             <button
               id="tab-btn-visi"
               onClick={() => handleTabSelect('visi')}
-              className={`min-h-[40px] py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center text-center ${
+              className={`min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                 currentTab === 'visi'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Azas & 6 Tujuan
+              <Target className="w-3.5 h-3.5 shrink-0" />
+              <span>Azas & 6 Tujuan</span>
             </button>
             <button
               id="tab-btn-pengurus"
               onClick={() => handleTabSelect('pengurus')}
-              className={`min-h-[40px] py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center text-center ${
+              className={`min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                 currentTab === 'pengurus'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Struktur BPH
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span>Struktur BPH</span>
             </button>
             <button
               id="tab-btn-adart"
               onClick={() => handleTabSelect('adart')}
-              className={`min-h-[40px] py-2 px-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 text-center ${
+              className={`min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
                 currentTab === 'adart'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-emerald-800 bg-emerald-100/50 hover:bg-emerald-100 font-bold'
@@ -94,9 +97,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
         {/* Tab 1: Tentang IRMAS */}
         {currentTab === 'profil' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
             
-            <div className="lg:col-span-6 space-y-4 sm:space-y-5">
+            <div className="md:col-span-1 lg:col-span-6 space-y-4 sm:space-y-5">
               <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">
                 <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 <span>Identitas & Tempat Pendirian</span>
@@ -125,7 +128,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </div>
             </div>
 
-            <div className="lg:col-span-6">
+            <div className="md:col-span-1 lg:col-span-6">
               <div className="relative rounded-2xl overflow-hidden border border-emerald-100 shadow-xl bg-slate-900">
                 <img
                   src={resolveAsset('/foto_putra_putri_jamaah.jpeg')}
@@ -157,7 +160,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               <div className="bg-emerald-900 text-white rounded-2xl p-4.5 sm:p-6 shadow-md border border-emerald-800 flex items-start gap-3.5 sm:gap-4">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-800 text-emerald-300 flex items-center justify-center shrink-0">
-                  <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Scale className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-300">BAB III Pasal 5 (Azas 1)</span>
@@ -170,7 +173,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
               <div className="bg-teal-900 text-white rounded-2xl p-4.5 sm:p-6 shadow-md border border-teal-800 flex items-start gap-3.5 sm:gap-4">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-800 text-teal-300 flex items-center justify-center shrink-0">
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-teal-300">BAB III Pasal 5 (Azas 2)</span>
@@ -186,7 +189,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="bg-emerald-50/50 rounded-2xl p-4.5 sm:p-6 md:p-8 border border-emerald-100">
               <div className="flex items-center gap-2.5 mb-5 sm:mb-6">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 leading-tight">
@@ -213,8 +216,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             {/* 4 Pilar Karakter */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-700 text-white flex items-center justify-center shrink-0">
-                  <Layers className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-teal-700 text-white flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4 shrink-0" />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">4 Pilar Karakter Pemuda Masjid</h3>
               </div>

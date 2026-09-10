@@ -13,27 +13,30 @@ export default function App() {
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
 
-  // Monitor active scroll section for active navbar link highlight
+  // Monitor active scroll section for active navbar link highlight using lightweight IntersectionObserver
   useEffect(() => {
-    const handleScroll = () => {
-      const sections = ['beranda', 'profil', 'galeri', 'kontak'];
-      const scrollPos = window.scrollY + 160;
+    const sections = ['beranda', 'profil', 'galeri', 'kontak'];
+    const elements = sections
+      .map(id => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
 
-      for (const section of sections) {
-        const el = document.getElementById(section);
-        if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPos >= top && scrollPos < top + height) {
-            setActiveSection(section);
-            break;
-          }
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.find(entry => entry.isIntersecting);
+        if (visible) {
+          setActiveSection(visible.target.id);
         }
+      },
+      {
+        rootMargin: '-20% 0px -65% 0px',
+        threshold: 0
       }
-    };
+    );
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   const scrollToSection = (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => {

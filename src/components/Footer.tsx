@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Mail, Phone, Instagram, Youtube, ArrowUp, ShieldCheck, ExternalLink, Globe } from 'lucide-react';
+import { MapPin, Mail, Phone, Instagram, Youtube, Facebook, Video, ArrowUp, ShieldCheck, ExternalLink, Globe } from 'lucide-react';
 import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       url: mosqueProfile.instagramUrl,
       gradient: 'from-amber-500 via-pink-600 to-purple-600',
       tag: '@irmas_al.ikhlashu',
-      icon: <Instagram className="w-4 h-4 text-white" />
+      icon: <Instagram className="w-4 h-4 text-white shrink-0" />
     },
     {
       name: 'TikTok',
@@ -40,11 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       url: mosqueProfile.tiktokUrl,
       gradient: 'from-slate-900 via-cyan-500 to-rose-500',
       tag: 'Konten Video & Dakwah',
-      icon: (
-        <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.81 4.47 6.34 6.34 0 0 0 1.88-4.47V8.62a8.27 8.27 0 0 0 4.9 1.58V6.75a4.83 4.83 0 0 1-1-.06z"/>
-        </svg>
-      )
+      icon: <Video className="w-4 h-4 text-white shrink-0" />
     },
     {
       name: 'YouTube',
@@ -52,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       url: mosqueProfile.youtubeUrl,
       gradient: 'from-red-600 to-red-700',
       tag: 'Kajian & Streaming',
-      icon: <Youtube className="w-4 h-4 text-white" />
+      icon: <Youtube className="w-4 h-4 text-white shrink-0" />
     },
     {
       name: 'Facebook',
@@ -60,11 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       url: mosqueProfile.facebookUrl,
       gradient: 'from-blue-600 to-blue-700',
       tag: 'Komunitas & Warta',
-      icon: (
-        <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-        </svg>
-      )
+      icon: <Facebook className="w-4 h-4 text-white shrink-0" />
     }
   ];
 
@@ -81,7 +73,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="lg:col-span-4 space-y-3.5">
             <IrmasLogo size="md" showText={true} lightText={true} />
 
-            <p className="text-xs text-slate-300 leading-relaxed text-justify sm:text-left">
+            <p className="text-xs text-slate-300 leading-relaxed text-left">
               Ikatan Remaja Masjid (IRMAS) Masjid Jamie “Al-Ikhlas” berfungsi sebagai sarana pembinaan aqidah, akhlak, serta ukhuwah Islamiah pemuda di lingkungan Graha Bhakti Kodam Jaya & Cittavile, Jatibaru, Cikarang Timur.
             </p>
 
@@ -159,8 +151,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* 4. Official Social Media Channels (col-span-3) */}
           <div className="lg:col-span-3 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-emerald-600 flex items-center justify-center text-white">
-                <Globe className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-md bg-emerald-600 flex items-center justify-center text-white shrink-0">
+                <Globe className="w-3.5 h-3.5 shrink-0" />
               </div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Media Sosial Resmi</h4>
             </div>
@@ -193,7 +185,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   </div>
 
                   <div className="flex items-center text-slate-400 group-hover:text-emerald-300 transition-colors pl-2">
-                    <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 shrink-0" />
                   </div>
                 </a>
               ))}
@@ -211,7 +203,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             className="flex items-center gap-1.5 text-emerald-400 hover:text-white transition-colors cursor-pointer bg-emerald-900/50 hover:bg-emerald-900 px-3.5 py-2 rounded-lg border border-emerald-800 text-xs min-h-[38px]"
           >
             <span>Kembali ke Atas</span>
-            <ArrowUp className="w-3.5 h-3.5" />
+            <ArrowUp className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
 

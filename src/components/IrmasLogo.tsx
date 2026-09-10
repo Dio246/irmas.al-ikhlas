@@ -161,15 +161,15 @@ export const IrmasLogo: React.FC<IrmasLogoProps> = ({
       </div>
 
       {showText && (
-        <div className="text-left flex flex-col justify-center">
-          <span className={`text-xs sm:text-sm font-bold tracking-tight leading-tight ${lightText ? 'text-white' : 'text-slate-900'}`}>
+        <div className="text-left flex flex-col justify-center min-w-0">
+          <span className={`text-[11px] sm:text-sm font-bold tracking-tight leading-tight whitespace-nowrap ${lightText ? 'text-white' : 'text-slate-900'}`}>
             Ikatan Remaja Masjid
           </span>
-          <span className={`text-xs sm:text-sm font-extrabold tracking-tight leading-tight ${lightText ? 'text-emerald-300' : 'text-emerald-700'}`}>
+          <span className={`text-[11px] sm:text-sm font-extrabold tracking-tight leading-tight whitespace-nowrap ${lightText ? 'text-emerald-300' : 'text-emerald-700'}`}>
             Masjid Jamie Al-Ikhlas
           </span>
-          <p className={`text-[10px] sm:text-[11px] font-medium leading-tight mt-0.5 ${lightText ? 'text-emerald-200/70' : 'text-slate-500'}`}>
-            Jatibaru, Cikarang Timur
+          <p className={`text-[9.5px] sm:text-[11px] font-medium leading-tight mt-0.5 whitespace-nowrap ${lightText ? 'text-emerald-200/70' : 'text-slate-500'}`}>
+            Jatibaru, Cikarang Timur.
           </p>
         </div>
       )}

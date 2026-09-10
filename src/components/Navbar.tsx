@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Users, Image as ImageIcon, BookOpen, UserCheck, PhoneCall, ChevronRight } from 'lucide-react';
+import { Menu, X, Users, Image as ImageIcon, Home, UserCheck, PhoneCall, ChevronRight } from 'lucide-react';
 import { IrmasLogo } from './IrmasLogo';
 
 interface NavbarProps {
@@ -20,8 +20,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems: { id: string; label: string; tab?: 'profil' | 'visi' | 'pengurus' | 'adart'; icon: typeof BookOpen }[] = [
-    { id: 'beranda', label: 'Beranda', icon: BookOpen },
+  const navItems: { id: string; label: string; tab?: 'profil' | 'visi' | 'pengurus' | 'adart'; icon: typeof Home }[] = [
+    { id: 'beranda', label: 'Beranda', icon: Home },
     { id: 'profil', label: 'Profil & Visi', tab: 'profil', icon: Users },
     { id: 'profil', label: 'Pengurus', tab: 'pengurus', icon: UserCheck },
     { id: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
               onClick={() => handleNavClick('kontak')}
               className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer active:scale-95"
             >
-              <PhoneCall className="w-3.5 h-3.5" />
+              <PhoneCall className="w-3.5 h-3.5 shrink-0" />
               <span>Hubungi Kami</span>
             </button>
           </div>
@@ -141,10 +141,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 opacity-70" />
+                  <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
                 </button>
               );
             })}
