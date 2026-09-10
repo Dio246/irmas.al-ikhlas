@@ -91,33 +91,32 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
   const imagesList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const programmaticTimerRef = useRef<number | null>(null);
+  const scrollSettledTimerRef = useRef<number | null>(null);
 
-  // Throttled scroll listener via requestAnimationFrame to eliminate mobile layout thrashing
-  const handleScroll = () => {
-    if (isScrollingRef.current) return;
-    isScrollingRef.current = true;
-    requestAnimationFrame(() => {
-      if (scrollContainerRef.current) {
-        const { scrollLeft, clientWidth } = scrollContainerRef.current;
-        if (clientWidth > 0) {
-          const index = Math.round(scrollLeft / clientWidth);
-          if (index >= 0 && index < imagesList.length && index !== activeIdx) {
-            setActiveIdx(index);
-          }
-        }
-      }
-      isScrollingRef.current = false;
-    });
-  };
-
+  // Smooth scroll to target photo without triggering conflicting scroll feedback
   const scrollToPhoto = (index: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (scrollContainerRef.current) {
-      const targetScroll = index * scrollContainerRef.current.clientWidth;
-      scrollContainerRef.current.scrollTo({ left: targetScroll, behavior: 'smooth' });
-      setActiveIdx(index);
+    if (index < 0 || index >= imagesList.length) return;
+
+    if (programmaticTimerRef.current) {
+      window.clearTimeout(programmaticTimerRef.current);
     }
+    isProgrammaticScrollRef.current = true;
+    setActiveIdx(index);
+
+    if (scrollContainerRef.current) {
+      const width = scrollContainerRef.current.clientWidth;
+      scrollContainerRef.current.scrollTo({
+        left: index * width,
+        behavior: 'smooth'
+      });
+    }
+
+    programmaticTimerRef.current = window.setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 450);
   };
 
   const handleNext = (e: React.MouseEvent) => {
@@ -132,18 +131,87 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
     scrollToPhoto(prevIdx);
   };
 
-  // Rolling 3-dot pagination window: displays at most 3 dots at any time,
-  // sliding smoothly to the right as the user scrolls through photos so it never overlaps the jamaah badge
-  const totalDots = imagesList.length;
-  const maxVisibleDots = 3;
-  const dotStartIndex = totalDots > maxVisibleDots
-    ? Math.min(Math.max(0, activeIdx - 1), totalDots - maxVisibleDots)
-    : 0;
+  // Debounced and thresholded scroll listener:
+  // Prevents rapid flipping between numbers at the 50% boundary during drags/swipes
+  const handleScroll = () => {
+    if (isProgrammaticScrollRef.current) return;
 
-  const visibleDotIndices = Array.from(
-    { length: Math.min(maxVisibleDots, totalDots) },
-    (_, i) => dotStartIndex + i
-  );
+    if (scrollContainerRef.current) {
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      if (clientWidth > 0) {
+        const raw = scrollLeft / clientWidth;
+        const nearest = Math.round(raw);
+        // Only update when scroll position is convincingly settled near the center of the photo
+        if (Math.abs(raw - nearest) < 0.35 && nearest >= 0 && nearest < imagesList.length) {
+          if (nearest !== activeIdx) {
+            setActiveIdx(nearest);
+          }
+        }
+      }
+    }
+
+    // Debounced fallback to lock in the final settled index
+    if (scrollSettledTimerRef.current) {
+      window.clearTimeout(scrollSettledTimerRef.current);
+    }
+    scrollSettledTimerRef.current = window.setTimeout(() => {
+      if (scrollContainerRef.current && !isProgrammaticScrollRef.current) {
+        const { scrollLeft, clientWidth } = scrollContainerRef.current;
+        if (clientWidth > 0) {
+          const finalIndex = Math.round(scrollLeft / clientWidth);
+          if (finalIndex >= 0 && finalIndex < imagesList.length && finalIndex !== activeIdx) {
+            setActiveIdx(finalIndex);
+          }
+        }
+      }
+    }, 80);
+  };
+
+  // Hardware-accelerated native scrollend detection
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const onScrollEnd = () => {
+      if (container.clientWidth > 0) {
+        const finalIndex = Math.round(container.scrollLeft / container.clientWidth);
+        if (finalIndex >= 0 && finalIndex < imagesList.length) {
+          setActiveIdx(finalIndex);
+        }
+      }
+      isProgrammaticScrollRef.current = false;
+    };
+
+    container.addEventListener('scrollend', onScrollEnd);
+    return () => {
+      container.removeEventListener('scrollend', onScrollEnd);
+      if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
+      if (scrollSettledTimerRef.current) window.clearTimeout(scrollSettledTimerRef.current);
+    };
+  }, [imagesList.length]);
+
+  // Rolling 3-dot pagination calculation:
+  // Shows max 3 dots, sliding to the right as activeIdx increases.
+  // Stable slots ensure buttons are NEVER unmounted/remounted during sliding, avoiding visual pops.
+  const totalDots = imagesList.length;
+  const maxVisibleDots = Math.min(3, totalDots);
+  const dotStartIndex = totalDots <= 3
+    ? 0
+    : Math.max(0, Math.min(activeIdx - 1, totalDots - 3));
+
+  const slots = Array.from({ length: maxVisibleDots }, (_, slotIdx) => {
+    const targetPhotoIdx = dotStartIndex + slotIdx;
+    const isActive = activeIdx === targetPhotoIdx;
+    const isLeftEdge = slotIdx === 0 && dotStartIndex > 0 && !isActive;
+    const isRightEdge = slotIdx === maxVisibleDots - 1 && dotStartIndex + maxVisibleDots < totalDots && !isActive;
+    return {
+      slotIdx,
+      targetPhotoIdx,
+      isActive,
+      isLeftEdge,
+      isRightEdge
+    };
+  });
 
   return (
     <div
@@ -159,34 +227,23 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
           onScroll={handleScroll}
           className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth touch-pan-y"
         >
-          {imagesList.map((imgUrl, idx) => {
-            // Virtualize: only mount <img> if visible or immediately adjacent, avoiding multi-image memory hog
-            const shouldMount = Math.abs(idx - activeIdx) <= 1;
-
-            return (
-              <div
-                key={idx}
-                onClick={() => onSelectImage(item, idx)}
-                className="w-full h-full shrink-0 snap-center relative cursor-pointer group/img bg-slate-950"
-              >
-                {shouldMount ? (
-                  <img
-                    src={getOptimizedThumbUrl(imgUrl)}
-                    alt={`${item.title} - Foto ${idx + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover transition-transform duration-300 md:group-hover/img:scale-105"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-700">
-                    <ImageIcon className="w-8 h-8 opacity-20" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover/img:opacity-80 transition-opacity pointer-events-none" />
-              </div>
-            );
-          })}
+          {imagesList.map((imgUrl, idx) => (
+            <div
+              key={idx}
+              onClick={() => onSelectImage(item, idx)}
+              className="w-full h-full shrink-0 snap-center relative cursor-pointer group/img bg-slate-950"
+            >
+              <img
+                src={getOptimizedThumbUrl(imgUrl)}
+                alt={`${item.title} - Foto ${idx + 1}`}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
+                className="w-full h-full object-cover transition-transform duration-300 md:group-hover/img:scale-105"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover/img:opacity-80 transition-opacity pointer-events-none" />
+            </div>
+          ))}
         </div>
 
         {/* Top Badges */}
@@ -198,9 +255,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 
           {/* Multiple Photos Count Indicator with Scroll Hint */}
           {imagesList.length > 1 && (
-            <span className="bg-black/65 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs pointer-events-auto">
-              <Images className="w-3 h-3 text-emerald-300" />
-              <span>{activeIdx + 1}/{imagesList.length} Foto • Geser ➔</span>
+            <span className="bg-black/65 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs pointer-events-auto select-none">
+              <Images className="w-3 h-3 text-emerald-300 shrink-0" />
+              <span className="tabular-nums">{activeIdx + 1}/{imagesList.length} Foto • Geser ➔</span>
             </span>
           )}
         </div>
@@ -245,29 +302,23 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
         {/* Compact Rolling 3-Dot Pagination (Max 3 dots, scrolls smoothly to right without overlapping Jamaah badge) */}
         {imagesList.length > 1 && (
           <div 
-            className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center gap-1.5 z-10 bg-black/50 px-2 py-1 rounded-full backdrop-blur-xs shadow-xs pointer-events-auto"
+            className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center gap-1.5 z-10 bg-black/55 px-2.5 py-1 rounded-full backdrop-blur-xs shadow-xs pointer-events-auto min-w-[48px] h-5 select-none"
             title={`Foto ${activeIdx + 1} dari ${imagesList.length}`}
           >
-            {visibleDotIndices.map((dotIdx) => {
-              const isActive = activeIdx === dotIdx;
-              const isLeftEdge = dotIdx === dotStartIndex && dotStartIndex > 0 && !isActive;
-              const isRightEdge = dotIdx === dotStartIndex + maxVisibleDots - 1 && dotStartIndex + maxVisibleDots < totalDots && !isActive;
-
-              return (
-                <button
-                  key={dotIdx}
-                  onClick={(e) => scrollToPhoto(dotIdx, e)}
-                  aria-label={`Lihat foto ${dotIdx + 1} dari ${imagesList.length}`}
-                  className={`transition-all duration-300 cursor-pointer rounded-full ${
-                    isActive
-                      ? 'bg-emerald-400 w-3.5 h-1.5 shadow-xs'
-                      : isLeftEdge || isRightEdge
-                      ? 'bg-white/50 hover:bg-white/80 w-1 h-1'
-                      : 'bg-white/70 hover:bg-white w-1.5 h-1.5'
-                  }`}
-                />
-              );
-            })}
+            {slots.map((slot) => (
+              <button
+                key={slot.slotIdx}
+                onClick={(e) => scrollToPhoto(slot.targetPhotoIdx, e)}
+                aria-label={`Lihat foto ${slot.targetPhotoIdx + 1} dari ${imagesList.length}`}
+                className={`transition-all duration-200 cursor-pointer rounded-full shrink-0 ${
+                  slot.isActive
+                    ? 'bg-emerald-400 w-3.5 h-1.5 shadow-xs'
+                    : slot.isLeftEdge || slot.isRightEdge
+                    ? 'bg-white/45 hover:bg-white/80 w-1 h-1'
+                    : 'bg-white/70 hover:bg-white w-1.5 h-1.5'
+                }`}
+              />
+            ))}
           </div>
         )}
 

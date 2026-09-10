@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, MapPin, Users, Tag, Share2, Check, ChevronLeft, ChevronRight, Images } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2 } from 'lucide-react';
 import { GalleryItem } from '../types';
 import { resolveAsset } from '../lib/assetHelper';
+import { downloadAlbumPhotos } from '../lib/downloadHelper';
 
 interface LightboxModalProps {
   item: GalleryItem | null;
@@ -18,7 +19,9 @@ function getOptimizedThumb(url: string | undefined): string {
 }
 
 export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex = 0, onClose }) => {
-  const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<string>('');
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(initialIndex);
 
   // Sync index when item changes
@@ -45,10 +48,29 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
 
   if (!item) return null;
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleDownloadAlbum = async () => {
+    if (!item || isDownloading) return;
+    setIsDownloading(true);
+    setDownloadProgress('Menyiapkan...');
+
+    try {
+      await downloadAlbumPhotos(
+        item.title,
+        imagesList,
+        (current, total) => {
+          setDownloadProgress(`${current}/${total}`);
+        }
+      );
+      setDownloadSuccess(true);
+      setTimeout(() => {
+        setDownloadSuccess(false);
+        setDownloadProgress('');
+      }, 3500);
+    } catch (err) {
+      console.error('Download album failed', err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handlePrev = (e: React.MouseEvent) => {
@@ -201,25 +223,32 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
 
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3 mt-4">
             <button
-              onClick={handleShare}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              onClick={handleDownloadAlbum}
+              disabled={isDownloading}
+              title={`Unduh ${imagesList.length > 1 ? `semua foto (${imagesList.length} foto)` : 'foto'} dalam album ini`}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-75 text-xs font-bold text-white transition-all shadow-xs cursor-pointer select-none"
             >
-              {copied ? (
+              {isDownloading ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Tersalin!</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Mengunduh... {downloadProgress}</span>
+                </>
+              ) : downloadSuccess ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-200" />
+                  <span className="text-white">Foto Terunduh!</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Bagikan Foto</span>
+                  <Download className="w-4 h-4 text-emerald-100" />
+                  <span>Unduh Foto {imagesList.length > 1 ? `(1 Album / ${imagesList.length} Foto)` : ''}</span>
                 </>
               )}
             </button>
             
             <button
               onClick={onClose}
-              className="py-2 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors cursor-pointer"
+              className="py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
             >
               Tutup
             </button>
