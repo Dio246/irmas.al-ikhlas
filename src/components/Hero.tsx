@@ -1,15 +1,21 @@
 import React from 'react';
-import { Image as ImageIcon, Sparkles, MapPin, UserCheck, FileText } from 'lucide-react';
+import { Image as ImageIcon, Sparkles, MapPin, UserCheck, FileText, Users } from 'lucide-react';
 import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
 interface HeroProps {
   onExploreProfile: () => void;
+  onExplorePengurus: () => void;
   onExploreGallery: () => void;
   onExploreAdArt: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, onExploreAdArt }) => {
+export const Hero: React.FC<HeroProps> = ({ 
+  onExploreProfile, 
+  onExplorePengurus, 
+  onExploreGallery, 
+  onExploreAdArt 
+}) => {
   return (
     <section id="beranda" className="relative pt-24 pb-12 sm:pt-32 sm:pb-16 md:pt-36 md:pb-20 overflow-hidden bg-gradient-to-b from-emerald-50/50 via-white to-white">
       
@@ -70,14 +76,23 @@ export const Hero: React.FC<HeroProps> = ({ onExploreProfile, onExploreGallery, 
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 max-w-md sm:max-w-none mx-auto">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 max-w-2xl mx-auto">
           <button
             id="hero-btn-profile"
             onClick={onExploreProfile}
             className="inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4.5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
           >
-            <UserCheck className="w-4 h-4 shrink-0" />
-            <span>Profil & Struktur Pengurus</span>
+            <Users className="w-4 h-4 shrink-0" />
+            <span>Profil & Visi</span>
+          </button>
+
+          <button
+            id="hero-btn-pengurus"
+            onClick={onExplorePengurus}
+            className="inline-flex items-center justify-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold px-4.5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
+          >
+            <UserCheck className="w-4 h-4 shrink-0 text-emerald-300" />
+            <span>Struktur Pengurus</span>
           </button>
 
           <button

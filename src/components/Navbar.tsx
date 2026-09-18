@@ -4,11 +4,10 @@ import { IrmasLogo } from './IrmasLogo';
 
 interface NavbarProps {
   activeSection: string;
-  activeProfileTab?: 'profil' | 'visi' | 'pengurus' | 'adart';
-  onNavigate?: (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => void;
+  onNavigate?: (id: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab = 'profil', onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -16,38 +15,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems: { id: string; label: string; tab?: 'profil' | 'visi' | 'pengurus' | 'adart'; icon: typeof Home }[] = [
+  const navItems = [
     { id: 'beranda', label: 'Beranda', icon: Home },
-    { id: 'profil', label: 'Profil & Visi', tab: 'profil', icon: Users },
-    { id: 'profil', label: 'Pengurus', tab: 'pengurus', icon: UserCheck },
+    { id: 'profil', label: 'Profil & Visi', icon: Users },
+    { id: 'pengurus', label: 'Pengurus', icon: UserCheck },
     { id: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
     { id: 'kontak', label: 'Kontak', icon: PhoneCall },
   ];
 
-  const isItemActive = (item: typeof navItems[0]) => {
-    if (activeSection !== item.id) return false;
-    if (item.id === 'profil') {
-      if (item.tab === 'pengurus') {
-        return activeProfileTab === 'pengurus';
-      }
-      return activeProfileTab !== 'pengurus';
-    }
-    return true;
-  };
-
-  const handleNavClick = (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => {
+  const handleNavClick = (id: string) => {
     setMobileMenuOpen(false);
     if (onNavigate) {
-      onNavigate(id, tab);
+      onNavigate(id);
     } else {
       const element = document.getElementById(id);
       if (element) {
-        const yOffset = -80;
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const y = Math.max(0, element.getBoundingClientRect().top + window.scrollY - 76);
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
@@ -77,13 +64,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
 
           {/* Desktop Nav Items */}
           <nav className="hidden md:flex items-center gap-1.5">
-            {navItems.map((item, idx) => {
-              const isActive = isItemActive(item);
+            {navItems.map((item) => {
+              const isActive = activeSection === item.id;
               return (
                 <button
-                  key={`${item.id}-${item.tab || idx}`}
-                  id={`nav-btn-${item.id}-${item.tab || idx}`}
-                  onClick={() => handleNavClick(item.id, item.tab)}
+                  key={`nav-${item.id}`}
+                  id={`nav-btn-${item.id}`}
+                  onClick={() => handleNavClick(item.id)}
                   className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                     isActive 
                       ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' 
@@ -126,14 +113,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, activeProfileTab 
       {mobileMenuOpen && (
         <div id="mobile-menu-drawer" className="md:hidden bg-white border-b border-emerald-100 px-4 pt-3 pb-6 shadow-xl transition-all">
           <div className="flex flex-col gap-1.5">
-            {navItems.map((item, idx) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = isItemActive(item);
+              const isActive = activeSection === item.id;
               return (
                 <button
-                  key={`m-${item.id}-${item.tab || idx}`}
-                  id={`mobile-nav-${item.id}-${item.tab || idx}`}
-                  onClick={() => handleNavClick(item.id, item.tab)}
+                  key={`m-${item.id}`}
+                  id={`mobile-nav-${item.id}`}
+                  onClick={() => handleNavClick(item.id)}
                   className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-left text-sm font-medium cursor-pointer ${
                     isActive 
                       ? 'bg-emerald-700 text-white font-semibold shadow-xs' 

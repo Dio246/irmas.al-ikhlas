@@ -59,7 +59,70 @@ export const visionMission = {
   ]
 };
 
+export const dkmList: Pengurus[] = [
+  {
+    id: "dkm-ketua",
+    name: "Ust. Rosadi",
+    role: "Ketua DKM",
+    division: "DKM",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Pemimpin dan penanggung jawab kemakmuran Masjid Jamie Al-Ikhlas serta pelindung utama Ikatan Remaja Masjid.",
+    whatsapp: "",
+    phone: "-"
+  },
+  {
+    id: "dkm-sekretaris",
+    name: "Ust. Amir Sunyoto",
+    role: "Sekretaris DKM",
+    division: "DKM",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Bertanggung jawab atas penataan administrasi, arsip, dan persuratan resmi DKM Masjid Jamie Al-Ikhlas.",
+    whatsapp: "",
+    phone: "-"
+  },
+  {
+    id: "dkm-bendahara",
+    name: "Ust. Adi Susmito",
+    role: "Bendahara DKM",
+    division: "DKM",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Mengelola sirkulasi keuangan dan inventaris kemasjidan secara amanah, akuntabel, dan transparan.",
+    whatsapp: "",
+    phone: "-"
+  }
+];
+
 export const pengurusList: Pengurus[] = [
+  {
+    id: "p-pembina",
+    name: "Ust. Ahmad Jarno",
+    role: "Pembina IRMAS",
+    division: "BPH",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Berkewajiban memberikan arahan, bimbingan, dan nasihat kepada pengurus IRMAS sesuai AD/ART BAB VII Pasal 12 demi kemakmuran masjid dan ridho Allah SWT.",
+    whatsapp: "",
+    phone: "-"
+  },
+  {
+    id: "p-pembantu-pembina-1",
+    name: "Ahmad Sofyan",
+    role: "Pembantu Pembina 1",
+    division: "BPH",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Mendampingi serta membantu pembina dalam pengawasan, pembinaan pemuda-pemudi, dan kelancaran program kerja IRMAS.",
+    whatsapp: "",
+    phone: "-"
+  },
+  {
+    id: "p-pembantu-pembina-2",
+    name: "M. Nashif Hisyam",
+    role: "Pembantu Pembina 2",
+    division: "BPH",
+    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    quote: "Mendampingi serta membantu pembina dalam pengawasan, pembinaan pemuda-pemudi, dan kelancaran program kerja IRMAS.",
+    whatsapp: "",
+    phone: "-"
+  },
   {
     id: "p-ketua",
     name: "M. Addym Jaka Anugrah",
@@ -82,23 +145,23 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-sekretaris-1",
-    name: "Dio Surya Pratama",
+    name: "Raihana Hanno M",
     role: "Sekretaris 1",
     division: "BPH",
     avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Bertanggung jawab terhadap penataan administrasi, surat-menyurat, dan dokumentasi resmi organisasi sesuai AD/ART.",
-    whatsapp: "+62 857-1545-8316",
-    phone: "0857-1545-8316"
+    whatsapp: "+62 822-4665-7095",
+    phone: "0822-4665-7095"
   },
   {
     id: "p-sekretaris-2",
-    name: "Reihana Hanno M",
+    name: "Talita Hasna Salsabila",
     role: "Sekretaris 2",
     division: "BPH",
     avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
     quote: "Mendukung kelancaran tata kelola arsip, notulensi rapat, dan ketertiban administrasi persyarikatan.",
-    whatsapp: "+62 822-4665-7095",
-    phone: "0822-4665-7095"
+    whatsapp: "+62 878-5218-3937",
+    phone: "0878-5218-3937"
   },
   {
     id: "p-bendahara-1",

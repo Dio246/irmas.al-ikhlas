@@ -4,22 +4,25 @@ import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
 interface FooterProps {
-  onNavigate?: (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => void;
+  onNavigate?: (id: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (onNavigate) {
+      onNavigate('beranda');
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  const handleNavClick = (id: string, tab?: 'profil' | 'visi' | 'pengurus' | 'adart') => {
+  const handleNavClick = (id: string) => {
     if (onNavigate) {
-      onNavigate(id, tab);
+      onNavigate(id);
     } else {
       const element = document.getElementById(id);
       if (element) {
-        const yOffset = -80;
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const y = Math.max(0, element.getBoundingClientRect().top + window.scrollY - 76);
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
@@ -95,23 +98,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNavClick('profil', 'visi')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
-                  Profil & Azas
+                <button onClick={() => handleNavClick('profil')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
+                  Profil & Visi
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNavClick('profil', 'pengurus')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
-                  Struktur BPH
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('profil', 'adart')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
-                  Buku AD/ART
+                <button onClick={() => handleNavClick('pengurus')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
+                  Struktur Pengurus
                 </button>
               </li>
               <li>
                 <button onClick={() => handleNavClick('galeri')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
                   Galeri Kegiatan
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNavClick('kontak')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
+                  Kontak & Informasi
                 </button>
               </li>
             </ul>
