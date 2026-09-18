@@ -13,6 +13,11 @@ export default function App() {
   const [profileTab, setProfileTab] = useState<'profil' | 'visi' | 'adart'>('profil');
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
+  const [showPengurus, setShowPengurus] = useState<boolean>(false);
+
+  // Keep a ref to showPengurus for the scroll event listener
+  const showPengurusRef = useRef<boolean>(false);
+  showPengurusRef.current = showPengurus;
 
   // Navigation lock ref to completely avoid glitching/flickering during smooth scroll
   const isNavigatingRef = useRef<boolean>(false);
@@ -51,7 +56,7 @@ export default function App() {
           }
 
           // 3. Check sections in reverse order from bottom to top
-          const sections = ['kontak', 'galeri', 'pengurus', 'profil'];
+          const sections = ['kontak', 'galeri', ...(showPengurusRef.current ? ['pengurus'] : []), 'profil'];
           for (const secId of sections) {
             const el = document.getElementById(secId);
             if (el) {
@@ -93,6 +98,33 @@ export default function App() {
       setProfileTab(tab);
     }
 
+    // If target is pengurus, ensure the section is opened first
+    if (id === 'pengurus') {
+      setShowPengurus(true);
+      showPengurusRef.current = true;
+
+      // Small delay to allow React to render the PengurusSection before scrolling to it
+      setTimeout(() => {
+        const element = document.getElementById('pengurus');
+        if (element) {
+          const navHeight = 74;
+          const targetY = Math.max(0, element.getBoundingClientRect().top + window.scrollY - navHeight);
+          window.scrollTo({ top: targetY, behavior: 'smooth' });
+        }
+      }, 60);
+
+      const unlockNavigation = () => {
+        isNavigatingRef.current = false;
+        window.removeEventListener('scrollend', unlockNavigation);
+      };
+
+      window.addEventListener('scrollend', unlockNavigation, { once: true });
+      navLockTimerRef.current = setTimeout(() => {
+        isNavigatingRef.current = false;
+      }, 850);
+      return;
+    }
+
     // 3. Scroll to target smoothly
     if (id === 'beranda') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -115,6 +147,14 @@ export default function App() {
     navLockTimerRef.current = setTimeout(() => {
       isNavigatingRef.current = false;
     }, 850);
+  };
+
+  const handleClosePengurus = () => {
+    setShowPengurus(false);
+    showPengurusRef.current = false;
+    if (activeSection === 'pengurus') {
+      setActiveSection('profil');
+    }
   };
 
   return (
@@ -144,8 +184,10 @@ export default function App() {
           onNavigateToPengurus={() => scrollToSection('pengurus')}
         />
 
-        {/* 4. Struktur Kepengurusan DKM & BPH IRMAS */}
-        <PengurusSection />
+        {/* 4. Struktur Kepengurusan DKM & BPH IRMAS (Hanya muncul jika menu pengurus ditekan) */}
+        {showPengurus && (
+          <PengurusSection onClose={handleClosePengurus} />
+        )}
 
         {/* 5. Galeri Dokumentasi Kegiatan */}
         <GallerySection 

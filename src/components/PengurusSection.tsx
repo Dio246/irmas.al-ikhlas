@@ -1,13 +1,31 @@
 import React from 'react';
-import { Shield, Award, Users, Phone } from 'lucide-react';
+import { Shield, Award, Users, Phone, X } from 'lucide-react';
 import { mosqueProfile, pengurusList, dkmList } from '../data/irmasData';
 import { resolveAsset } from '../lib/assetHelper';
 
-export const PengurusSection: React.FC = () => {
+interface PengurusSectionProps {
+  onClose?: () => void;
+}
+
+export const PengurusSection: React.FC<PengurusSectionProps> = ({ onClose }) => {
   return (
     <section id="pengurus" className="py-12 sm:py-16 md:py-24 bg-slate-50 border-b border-slate-200/80 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Close Button at Top */}
+        {onClose && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+              title="Tutup Struktur Kepengurusan"
+            >
+              <X className="w-3.5 h-3.5 text-slate-500" />
+              <span>Tutup Struktur</span>
+            </button>
+          </div>
+        )}
+
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-1.5 bg-emerald-100/80 text-emerald-900 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full border border-emerald-200 mb-2.5 shadow-2xs">
@@ -277,6 +295,19 @@ export const PengurusSection: React.FC = () => {
             Sesuai BAB VII Pasal 12 AD/ART, Pengurus IRMAS berkewajiban membuat laporan kegiatan dan berkoordinasi langsung dengan Pengurus DKM Masjid Jamie Al-Ikhlas.
           </p>
         </div>
+
+        {/* Bottom Close Button */}
+        {onClose && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 px-5 py-2.5 rounded-xl border border-slate-300 shadow-xs transition-all cursor-pointer hover:border-slate-400"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+              <span>Tutup Tampilan Struktur Kepengurusan</span>
+            </button>
+          </div>
+        )}
 
       </div>
     </section>
