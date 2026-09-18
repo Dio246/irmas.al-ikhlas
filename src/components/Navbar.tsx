@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Users, Image as ImageIcon, Home, UserCheck, PhoneCall, ChevronRight } from 'lucide-react';
+import { Menu, X, Users, Image as ImageIcon, Home, PhoneCall, ChevronRight } from 'lucide-react';
 import { IrmasLogo } from './IrmasLogo';
 
 interface NavbarProps {
@@ -22,7 +22,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
   const navItems = [
     { id: 'beranda', label: 'Beranda', icon: Home },
     { id: 'profil', label: 'Profil & Visi', icon: Users },
-    { id: 'pengurus', label: 'Pengurus', icon: UserCheck },
     { id: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
     { id: 'kontak', label: 'Kontak', icon: PhoneCall },
   ];
@@ -43,13 +42,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
   return (
     <header 
       id="main-navbar"
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 h-16 sm:h-[68px] flex items-center transition-colors duration-200 ${
         isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-sm py-3 border-b border-emerald-100' 
-          : 'bg-white/90 backdrop-blur-sm py-4 border-b border-slate-100'
+          ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-emerald-100' 
+          : 'bg-white/90 backdrop-blur-sm border-b border-slate-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex items-center justify-between">
           
           {/* Logo & Brand */}

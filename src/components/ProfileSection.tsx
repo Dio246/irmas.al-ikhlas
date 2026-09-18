@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Target, Shield, BookOpen, Layers, FileText, Scale, Users, ChevronRight } from 'lucide-react';
+import { Target, Shield, BookOpen, Layers, FileText, Scale, Users } from 'lucide-react';
 import { mosqueProfile, visionMission } from '../data/irmasData';
 import { AdArtViewer } from './AdArtViewer';
+import { PengurusSection } from './PengurusSection';
 import { resolveAsset } from '../lib/assetHelper';
 
 interface ProfileSectionProps {
-  activeTab?: 'profil' | 'visi' | 'adart';
-  onTabChange?: (tab: 'profil' | 'visi' | 'adart') => void;
+  activeTab?: 'profil' | 'visi' | 'adart' | 'pengurus';
+  onTabChange?: (tab: 'profil' | 'visi' | 'adart' | 'pengurus') => void;
   onNavigateToPengurus?: () => void;
 }
 
@@ -15,11 +16,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onTabChange,
   onNavigateToPengurus 
 }) => {
-  const [internalTab, setInternalTab] = useState<'profil' | 'visi' | 'adart'>('profil');
+  const [internalTab, setInternalTab] = useState<'profil' | 'visi' | 'adart' | 'pengurus'>('profil');
 
   const currentTab = externalTab || internalTab;
 
-  const handleTabSelect = (tab: 'profil' | 'visi' | 'adart') => {
+  const handleTabSelect = (tab: 'profil' | 'visi' | 'adart' | 'pengurus') => {
     if (onTabChange) {
       onTabChange(tab);
     } else {
@@ -83,20 +84,23 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               <span>Buku AD/ART</span>
             </button>
             <button
-              id="tab-btn-to-pengurus"
-              onClick={() => onNavigateToPengurus?.()}
-              className="min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 text-emerald-800 bg-emerald-50 hover:bg-emerald-100/90 border border-emerald-200/80"
+              id="tab-btn-pengurus"
+              onClick={() => handleTabSelect('pengurus')}
+              className={`min-h-[40px] py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 text-center ${
+                currentTab === 'pengurus'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <Users className="w-3.5 h-3.5 shrink-0 text-emerald-700" />
-              <span>Pengurus</span>
-              <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-70" />
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span>Struktur Pengurus</span>
             </button>
           </div>
         </div>
 
         {/* Tab 1: Tentang IRMAS */}
         {currentTab === 'profil' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+          <div className="animate-tab-fade grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
             
             <div className="md:col-span-1 lg:col-span-6 space-y-4 sm:space-y-5">
               <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">
@@ -153,7 +157,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
         {/* Tab 2: Azas, Visi & 6 Tujuan Resmi AD/ART */}
         {currentTab === 'visi' && (
-          <div className="space-y-8 sm:space-y-10">
+          <div className="animate-tab-fade space-y-8 sm:space-y-10">
             
             {/* Azas Section (BAB III Pasal 5) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -239,8 +243,15 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
         {/* Tab 3: Buku Pedoman AD/ART (Interactive Document) */}
         {currentTab === 'adart' && (
-          <div className="space-y-6">
+          <div className="animate-tab-fade space-y-6">
             <AdArtViewer />
+          </div>
+        )}
+
+        {/* Tab 4: Struktur Pengurus DKM & BPH IRMAS */}
+        {currentTab === 'pengurus' && (
+          <div id="pengurus-content" className="animate-tab-fade space-y-6">
+            <PengurusSection embeddedInTab />
           </div>
         )}
 

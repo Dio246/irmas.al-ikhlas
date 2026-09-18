@@ -2,159 +2,178 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { ProfileSection } from './components/ProfileSection';
-import { PengurusSection } from './components/PengurusSection';
 import { GallerySection } from './components/GallerySection';
 import { Footer } from './components/Footer';
 import { LightboxModal } from './components/LightboxModal';
 import { GalleryItem } from './types';
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState<string>('beranda');
-  const [profileTab, setProfileTab] = useState<'profil' | 'visi' | 'adart'>('profil');
+  const [activeSection, setActiveSection] = useState<string>('');
+  const [profileTab, setProfileTab] = useState<'profil' | 'visi' | 'adart' | 'pengurus'>('profil');
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
-  const [showPengurus, setShowPengurus] = useState<boolean>(false);
-
-  // Keep a ref to showPengurus for the scroll event listener
-  const showPengurusRef = useRef<boolean>(false);
-  showPengurusRef.current = showPengurus;
 
   // Navigation lock ref to completely avoid glitching/flickering during smooth scroll
   const isNavigatingRef = useRef<boolean>(false);
+  const targetYRef = useRef<number>(0);
   const navLockTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasUserInteractedRef = useRef<boolean>(false);
+
+  const unlockNavigation = () => {
+    isNavigatingRef.current = false;
+    if (navLockTimerRef.current) {
+      clearTimeout(navLockTimerRef.current);
+      navLockTimerRef.current = null;
+    }
+    if (scrollDebounceTimerRef.current) {
+      clearTimeout(scrollDebounceTimerRef.current);
+      scrollDebounceTimerRef.current = null;
+    }
+  };
 
   // Smooth, deterministic scroll position tracker for manual user scroll
   useEffect(() => {
-    let ticking = false;
+    // If the user manually touches the screen or scrolls the mouse wheel, immediately yield control
+    const handleManualInteraction = () => {
+      if (isNavigatingRef.current) {
+        unlockNavigation();
+      }
+      hasUserInteractedRef.current = true;
+    };
+
+    window.addEventListener('wheel', handleManualInteraction, { passive: true });
+    window.addEventListener('touchstart', handleManualInteraction, { passive: true });
 
     const handleScroll = () => {
-      if (isNavigatingRef.current) return;
+      // 1. If programmatic navigation is running, do NOT switch active section
+      if (isNavigatingRef.current) {
+        // Arrived at destination within 12px
+        if (Math.abs(window.scrollY - targetYRef.current) <= 12) {
+          unlockNavigation();
+          return;
+        }
 
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          if (isNavigatingRef.current) {
-            ticking = false;
-            return;
-          }
+        // Debounce: unlock when scroll stops firing for 100ms
+        if (scrollDebounceTimerRef.current) {
+          clearTimeout(scrollDebounceTimerRef.current);
+        }
+        scrollDebounceTimerRef.current = setTimeout(() => {
+          unlockNavigation();
+        }, 100);
 
-          const scrollY = window.scrollY;
-          const windowHeight = window.innerHeight;
-          const fullHeight = document.documentElement.scrollHeight;
+        return;
+      }
 
-          // 1. Top of page -> Beranda
-          if (scrollY < 100) {
-            setActiveSection('beranda');
-            ticking = false;
-            return;
-          }
+      // 2. Manual scroll spy logic
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const fullHeight = document.documentElement.scrollHeight;
 
-          // 2. Bottom of page -> Kontak
-          if (scrollY + windowHeight >= fullHeight - 60) {
-            setActiveSection('kontak');
-            ticking = false;
-            return;
-          }
-
-          // 3. Check sections in reverse order from bottom to top
-          const sections = ['kontak', 'galeri', ...(showPengurusRef.current ? ['pengurus'] : []), 'profil'];
-          for (const secId of sections) {
-            const el = document.getElementById(secId);
-            if (el) {
-              const top = el.getBoundingClientRect().top;
-              if (top <= 140) {
-                setActiveSection(secId);
-                ticking = false;
-                return;
-              }
-            }
-          }
-
+      // At top of page
+      if (scrollY < 120) {
+        if (hasUserInteractedRef.current) {
           setActiveSection('beranda');
-          ticking = false;
-        });
-        ticking = true;
+        } else {
+          setActiveSection('');
+        }
+        return;
+      }
+
+      hasUserInteractedRef.current = true;
+
+      // Bottom of page -> Kontak
+      if (scrollY + windowHeight >= fullHeight - 50) {
+        setActiveSection('kontak');
+        return;
+      }
+
+      // Check sections based on fixed reading offset line (70px navbar + 50px offset = 120px)
+      const readingLine = 120;
+      const kontakEl = document.getElementById('kontak');
+      const galeriEl = document.getElementById('galeri');
+      const profilEl = document.getElementById('profil');
+
+      if (kontakEl && kontakEl.getBoundingClientRect().top <= readingLine) {
+        setActiveSection('kontak');
+        return;
+      }
+
+      if (galeriEl) {
+        const rect = galeriEl.getBoundingClientRect();
+        if (rect.top <= readingLine && rect.bottom > readingLine) {
+          setActiveSection('galeri');
+          return;
+        }
+      }
+
+      if (profilEl) {
+        const rect = profilEl.getBoundingClientRect();
+        if (rect.top <= readingLine && rect.bottom > readingLine) {
+          setActiveSection('profil');
+          return;
+        }
+        if (rect.top > readingLine) {
+          setActiveSection('beranda');
+          return;
+        }
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (navLockTimerRef.current) {
-        clearTimeout(navLockTimerRef.current);
-      }
+      window.removeEventListener('wheel', handleManualInteraction);
+      window.removeEventListener('touchstart', handleManualInteraction);
+      if (navLockTimerRef.current) clearTimeout(navLockTimerRef.current);
+      if (scrollDebounceTimerRef.current) clearTimeout(scrollDebounceTimerRef.current);
     };
   }, []);
 
-  const scrollToSection = (id: string, tab?: 'profil' | 'visi' | 'adart') => {
-    // 1. Lock scroll spy to eliminate any flickering/glitch
-    if (navLockTimerRef.current) {
-      clearTimeout(navLockTimerRef.current);
-    }
+  const scrollToSection = (id: string, tab?: 'profil' | 'visi' | 'adart' | 'pengurus') => {
+    hasUserInteractedRef.current = true;
+
+    // 1. Lock scroll spy to eliminate any flickering/glitch during smooth transition
+    unlockNavigation();
     isNavigatingRef.current = true;
 
-    // 2. Immediately reflect active button in UI
-    setActiveSection(id);
-    if (tab) {
+    // 2. Target ID and active section mapping
+    const resolvedSection = id === 'pengurus' ? 'profil' : id;
+    setActiveSection(resolvedSection);
+
+    // 3. Tab state management
+    if (id === 'pengurus') {
+      setProfileTab('pengurus');
+    } else if (id === 'profil') {
+      if (tab) {
+        setProfileTab(tab);
+      }
+    } else if (tab) {
       setProfileTab(tab);
     }
 
-    // If target is pengurus, ensure the section is opened first
-    if (id === 'pengurus') {
-      setShowPengurus(true);
-      showPengurusRef.current = true;
-
-      // Small delay to allow React to render the PengurusSection before scrolling to it
-      setTimeout(() => {
-        const element = document.getElementById('pengurus');
-        if (element) {
-          const navHeight = 74;
-          const targetY = Math.max(0, element.getBoundingClientRect().top + window.scrollY - navHeight);
-          window.scrollTo({ top: targetY, behavior: 'smooth' });
-        }
-      }, 60);
-
-      const unlockNavigation = () => {
-        isNavigatingRef.current = false;
-        window.removeEventListener('scrollend', unlockNavigation);
-      };
-
-      window.addEventListener('scrollend', unlockNavigation, { once: true });
-      navLockTimerRef.current = setTimeout(() => {
-        isNavigatingRef.current = false;
-      }, 850);
-      return;
-    }
-
-    // 3. Scroll to target smoothly
+    // 4. Scroll destination calculation
+    let targetY = 0;
     if (id === 'beranda') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      targetY = 0;
     } else {
-      const element = document.getElementById(id);
+      const targetId = id === 'pengurus' ? 'profil' : id;
+      const element = document.getElementById(targetId);
       if (element) {
-        const navHeight = 74;
-        const targetY = Math.max(0, element.getBoundingClientRect().top + window.scrollY - navHeight);
-        window.scrollTo({ top: targetY, behavior: 'smooth' });
+        const navHeight = 68;
+        targetY = Math.max(0, element.getBoundingClientRect().top + window.scrollY - navHeight);
       }
     }
 
-    // 4. Release navigation lock when smooth scrolling finishes
-    const unlockNavigation = () => {
-      isNavigatingRef.current = false;
-      window.removeEventListener('scrollend', unlockNavigation);
-    };
+    targetYRef.current = targetY;
 
-    window.addEventListener('scrollend', unlockNavigation, { once: true });
+    // 5. Scroll smoothly
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+    // 6. Failsafe unlock timeout (in case scrollend does not trigger)
     navLockTimerRef.current = setTimeout(() => {
       isNavigatingRef.current = false;
-    }, 850);
-  };
-
-  const handleClosePengurus = () => {
-    setShowPengurus(false);
-    showPengurusRef.current = false;
-    if (activeSection === 'pengurus') {
-      setActiveSection('profil');
-    }
+    }, 1100);
   };
 
   return (
@@ -172,24 +191,20 @@ export default function App() {
         {/* 2. Hero Overview & Logo Showcase */}
         <Hero 
           onExploreProfile={() => scrollToSection('profil', 'profil')}
-          onExplorePengurus={() => scrollToSection('pengurus')}
-          onExploreAdArt={() => scrollToSection('profil', 'adart')}
           onExploreGallery={() => scrollToSection('galeri')}
         />
 
-        {/* 3. Profil & Landasan IRMAS (Buku AD/ART, Azas, Tujuan) */}
+        {/* 3. Profil & Landasan IRMAS (Tentang IRMAS, Azas & Tujuan, AD/ART, Pengurus) */}
         <ProfileSection 
           activeTab={profileTab}
-          onTabChange={(t) => setProfileTab(t)}
-          onNavigateToPengurus={() => scrollToSection('pengurus')}
+          onTabChange={(t) => {
+            setProfileTab(t);
+            setActiveSection('profil');
+          }}
+          onNavigateToPengurus={() => scrollToSection('pengurus', 'pengurus')}
         />
 
-        {/* 4. Struktur Kepengurusan DKM & BPH IRMAS (Hanya muncul jika menu pengurus ditekan) */}
-        {showPengurus && (
-          <PengurusSection onClose={handleClosePengurus} />
-        )}
-
-        {/* 5. Galeri Dokumentasi Kegiatan */}
+        {/* 4. Galeri Dokumentasi Kegiatan */}
         <GallerySection 
           onSelectImage={(item, photoIndex = 0) => {
             setSelectedGalleryItem(item);
@@ -199,7 +214,7 @@ export default function App() {
 
       </main>
 
-      {/* 6. Footer & Kontak */}
+      {/* 5. Footer & Kontak */}
       <Footer onNavigate={scrollToSection} />
 
       {/* Lightbox Modal for Gallery Image Details */}

@@ -1,21 +1,33 @@
-import React from 'react';
-import { Image as ImageIcon, Sparkles, MapPin, UserCheck, FileText, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Image as ImageIcon, Sparkles, MapPin, Users } from 'lucide-react';
 import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
 interface HeroProps {
   onExploreProfile: () => void;
-  onExplorePengurus: () => void;
   onExploreGallery: () => void;
-  onExploreAdArt: () => void;
+  onExploreAdArt?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({ 
   onExploreProfile, 
-  onExplorePengurus, 
-  onExploreGallery, 
-  onExploreAdArt 
+  onExploreGallery 
 }) => {
+  const [activeHeroBtn, setActiveHeroBtn] = useState<string | null>(null);
+
+  const handleBtnClick = (btnId: string, action: () => void) => {
+    setActiveHeroBtn(btnId);
+    action();
+  };
+
+  const getButtonClass = (btnId: string) => {
+    const isActive = activeHeroBtn === btnId;
+    if (isActive) {
+      return "inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-5 py-3 rounded-xl border border-emerald-700 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]";
+    }
+    return "inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-semibold px-5 py-3 rounded-xl border border-slate-200/90 hover:border-slate-300 shadow-2xs transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]";
+  };
+
   return (
     <section id="beranda" className="relative pt-24 pb-12 sm:pt-32 sm:pb-16 md:pt-36 md:pb-20 overflow-hidden bg-gradient-to-b from-emerald-50/50 via-white to-white">
       
@@ -76,40 +88,22 @@ export const Hero: React.FC<HeroProps> = ({
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 max-w-2xl mx-auto">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
           <button
             id="hero-btn-profile"
-            onClick={onExploreProfile}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4.5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
+            onClick={() => handleBtnClick('profile', onExploreProfile)}
+            className={getButtonClass('profile')}
           >
-            <Users className="w-4 h-4 shrink-0" />
+            <Users className={`w-4 h-4 shrink-0 ${activeHeroBtn === 'profile' ? 'text-white' : 'text-slate-500'}`} />
             <span>Profil & Visi</span>
           </button>
 
           <button
-            id="hero-btn-pengurus"
-            onClick={onExplorePengurus}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold px-4.5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
-          >
-            <UserCheck className="w-4 h-4 shrink-0 text-emerald-300" />
-            <span>Struktur Pengurus</span>
-          </button>
-
-          <button
-            id="hero-btn-adart"
-            onClick={onExploreAdArt}
-            className="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-semibold px-4 py-3 rounded-xl border border-emerald-200/90 shadow-2xs transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
-          >
-            <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span>Baca Pedoman AD/ART</span>
-          </button>
-
-          <button
             id="hero-btn-gallery"
-            onClick={onExploreGallery}
-            className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold px-4 py-3 rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer active:scale-95 text-xs sm:text-sm min-h-[44px]"
+            onClick={() => handleBtnClick('gallery', onExploreGallery)}
+            className={getButtonClass('gallery')}
           >
-            <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+            <ImageIcon className={`w-4 h-4 shrink-0 ${activeHeroBtn === 'gallery' ? 'text-white' : 'text-slate-500'}`} />
             <span>Galeri Kegiatan</span>
           </button>
         </div>
