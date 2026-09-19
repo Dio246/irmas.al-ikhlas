@@ -8,16 +8,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const navItems = [
     { id: 'beranda', label: 'Beranda', icon: Home },
@@ -33,7 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
     } else {
       const element = document.getElementById(id);
       if (element) {
-        const y = Math.max(0, element.getBoundingClientRect().top + window.scrollY - 76);
+        const y = Math.max(0, element.getBoundingClientRect().top + window.scrollY - 68);
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
@@ -42,75 +33,73 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate }) => 
   return (
     <header 
       id="main-navbar"
-      className={`fixed top-0 left-0 right-0 z-50 h-16 sm:h-[68px] flex items-center transition-colors duration-200 ${
-        isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-emerald-100' 
-          : 'bg-white/90 backdrop-blur-sm border-b border-slate-100'
-      }`}
+      className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex items-center justify-between">
-          
-          {/* Logo & Brand */}
-          <a 
-            id="brand-logo"
-            href="#beranda" 
-            onClick={(e) => { e.preventDefault(); handleNavClick('beranda'); }}
-            className="flex items-center gap-2 group text-left cursor-pointer min-w-0 max-w-[78%] sm:max-w-none"
-          >
-            <IrmasLogo size="sm" showText={true} />
-          </a>
-
-          {/* Desktop Nav Items */}
-          <nav className="hidden md:flex items-center gap-1.5">
-            {navItems.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={`nav-${item.id}`}
-                  id={`nav-btn-${item.id}`}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                    isActive 
-                      ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' 
-                      : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Quick Contact Button */}
-          <div className="hidden md:flex items-center">
-            <button
-              onClick={() => handleNavClick('kontak')}
-              className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer active:scale-95"
+      <div className="h-16 flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex items-center justify-between">
+            
+            {/* Logo & Brand */}
+            <a 
+              id="brand-logo"
+              href="#beranda" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('beranda'); }}
+              className="flex items-center gap-2 text-left cursor-pointer min-w-0 max-w-[78%] sm:max-w-none select-none"
             >
-              <PhoneCall className="w-3.5 h-3.5 shrink-0" />
-              <span>Hubungi Kami</span>
-            </button>
-          </div>
+              <IrmasLogo size="sm" showText={true} />
+            </a>
 
-          {/* Mobile Menu Toggle */}
-          <div className="flex items-center md:hidden">
-            <button
-              id="mobile-menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 focus:outline-none cursor-pointer"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6 text-emerald-700" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+            {/* Desktop Nav Items */}
+            <nav className="hidden md:flex items-center gap-1.5">
+              {navItems.map((item) => {
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={`nav-${item.id}`}
+                    id={`nav-btn-${item.id}`}
+                    onClick={() => handleNavClick(item.id)}
+                    className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 cursor-pointer border ${
+                      isActive 
+                        ? 'text-emerald-800 bg-emerald-50 border-emerald-200/80 shadow-2xs' 
+                        : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-100/70 border-transparent'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
 
+            {/* Quick Contact Button */}
+            <div className="hidden md:flex items-center">
+              <button
+                onClick={() => handleNavClick('kontak')}
+                className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-colors duration-150 cursor-pointer active:scale-95 border border-emerald-700"
+              >
+                <PhoneCall className="w-3.5 h-3.5 shrink-0" />
+                <span>Hubungi Kami</span>
+              </button>
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <div className="flex items-center md:hidden">
+              <button
+                id="mobile-menu-toggle"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-xl text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 focus:outline-none cursor-pointer"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6 text-emerald-700" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
+          </div>
         </div>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div id="mobile-menu-drawer" className="md:hidden bg-white border-b border-emerald-100 px-4 pt-3 pb-6 shadow-xl transition-all">
+        <div id="mobile-menu-drawer" className="md:hidden bg-white/98 backdrop-blur-md border-t border-slate-100 px-4 pt-3 pb-6 shadow-xl transition-all">
           <div className="flex flex-col gap-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;

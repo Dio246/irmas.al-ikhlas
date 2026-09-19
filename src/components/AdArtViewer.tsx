@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, ChevronRight, FileText, Users, Clock, MapPin, Image as ImageIcon, ChevronLeft, Maximize2, X, BookOpen, FileCheck } from 'lucide-react';
 import { adArtOfficialDocument, mosqueProfile, musyawarahPhotos } from '../data/irmasData';
 
@@ -8,6 +8,24 @@ export const AdArtViewer: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pasal' | 'kata-pengantar' | 'pengesahan' | 'dokumentasi'>('pasal');
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFullscreenPhoto(null);
+      }
+    };
+    if (fullscreenPhoto) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [fullscreenPhoto]);
 
   const toggleBab = (babNumber: string) => {
     setExpandedBabs(prev => 
@@ -257,7 +275,7 @@ export const AdArtViewer: React.FC = () => {
 
           {/* Signature */}
           <div className="pt-6 border-t border-slate-100 flex justify-end">
-            <div className="text-right text-xs">
+            <div className="text-right text-xs p-3">
               <p className="text-slate-500">{adArtOfficialDocument.kataPengantar.signatureDate}</p>
               <p className="font-bold text-slate-900 mt-1">{adArtOfficialDocument.kataPengantar.signerRole}</p>
               <div className="h-12 flex items-center justify-end">
@@ -286,9 +304,9 @@ export const AdArtViewer: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4">
             {/* Sekretaris */}
-            <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-200">
+            <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-200 shadow-2xs">
               <p className="text-xs font-bold text-slate-700">Sekretaris IRMAS</p>
               <div className="h-16 flex items-center justify-center">
                 <span className="text-xs font-serif text-emerald-700 italic border-b border-emerald-300 pb-0.5">
@@ -301,7 +319,7 @@ export const AdArtViewer: React.FC = () => {
             </div>
 
             {/* Ketua IRMAS */}
-            <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-200">
+            <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-200 shadow-2xs">
               <p className="text-xs font-bold text-slate-700">Ketua IRMAS</p>
               <div className="h-16 flex items-center justify-center">
                 <span className="text-xs font-serif text-emerald-700 italic border-b border-emerald-300 pb-0.5">
@@ -316,12 +334,12 @@ export const AdArtViewer: React.FC = () => {
 
           {/* Mengetahui Ketua DKM */}
           <div className="pt-2">
-            <div className="max-w-md mx-auto bg-emerald-50/70 rounded-xl p-5 text-center border border-emerald-200">
+            <div className="max-w-md mx-auto bg-emerald-50/70 rounded-xl p-5 text-center border border-emerald-200 shadow-2xs">
               <p className="text-xs font-medium text-emerald-800">Mengetahui,</p>
               <p className="text-xs font-bold text-slate-900 mt-0.5">Ketua DKM Masjid Jamie Al-Ikhlas</p>
               <div className="h-16 flex items-center justify-center">
                 <span className="text-xs font-serif text-emerald-800 italic border-b border-emerald-400 pb-0.5">
-                  Rosadi
+                  Ust. Rosadi
                 </span>
               </div>
               <p className="text-xs font-extrabold text-slate-900">
@@ -521,6 +539,7 @@ export const AdArtViewer: React.FC = () => {
         </div>
       )}
 
+      {/* Modal Detail Profil Penandatangan AD/ART dihapus sesuai permintaan */}
     </div>
   );
 };

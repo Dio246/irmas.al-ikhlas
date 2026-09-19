@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2 } from 'lucide-react';
 import { GalleryItem } from '../types';
 import { resolveAsset } from '../lib/assetHelper';
@@ -83,16 +84,18 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
     setActivePhotoIdx((prev) => (prev + 1) % imagesList.length);
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div 
       id="lightbox-backdrop"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
     >
       <div 
         id="lightbox-content"
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-2xl overflow-hidden max-w-5xl w-full max-h-[92vh] shadow-2xl border border-emerald-100 flex flex-col md:flex-row"
+        className="relative bg-white rounded-2xl overflow-hidden max-w-5xl w-full max-h-[92vh] shadow-2xl border border-emerald-100 flex flex-col md:flex-row my-auto"
       >
         
         {/* Close Button */}
@@ -257,6 +260,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

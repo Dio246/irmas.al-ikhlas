@@ -27,12 +27,12 @@ export const IrmasLogo: React.FC<IrmasLogoProps> = ({
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
-      <div className={`relative ${badgeSizeClass} shrink-0 rounded-full overflow-hidden shadow-md group transition-transform hover:scale-105 bg-white ring-1 ring-emerald-600/15`}>
+      <div className={`relative ${badgeSizeClass} shrink-0 rounded-full overflow-hidden ${size === 'sm' ? 'shadow-xs ring-1 ring-emerald-600/20' : 'shadow-md group transition-transform hover:scale-105 ring-1 ring-emerald-600/15'} bg-white`}>
         {!imageError ? (
           <img
             src={resolveAsset('/Logo.IRMAS.png')}
             alt="Logo Resmi IRMAS Masjid Jamie Al-Ikhlas Jatibaru"
-            className="w-full h-full object-cover rounded-full scale-[1.48] translate-y-[1.2%] transition-transform duration-300 group-hover:scale-[1.53]"
+            className={`w-full h-full object-cover rounded-full scale-[1.48] translate-y-[1.2%] ${size === 'sm' ? '' : 'transition-transform duration-300 group-hover:scale-[1.53]'}`}
             onError={() => setImageError(true)}
           />
         ) : (

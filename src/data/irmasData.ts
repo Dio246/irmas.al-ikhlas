@@ -65,7 +65,7 @@ export const dkmList: Pengurus[] = [
     name: "Ust. Rosadi",
     role: "Ketua DKM",
     division: "DKM",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/DKM/Ketua DKM.12.38.jpeg",
     quote: "Pemimpin dan penanggung jawab kemakmuran Masjid Jamie Al-Ikhlas serta pelindung utama Ikatan Remaja Masjid.",
     whatsapp: "",
     phone: "-"
@@ -128,7 +128,7 @@ export const pengurusList: Pengurus[] = [
     name: "M. Addym Jaka Anugrah",
     role: "Ketua IRMAS",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/Ketua Irmas.11.41.jpeg",
     quote: "Bertanggung jawab terhadap kesinambungan dan keberlangsungan organisasi baik internal maupun eksternal demi ridho Allah SWT.",
     whatsapp: "+62 838-6481-993",
     phone: "0838-6481-993"
