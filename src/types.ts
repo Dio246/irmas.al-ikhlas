@@ -21,6 +21,7 @@ export interface Pengurus {
   role: string;
   division: 'BPH' | 'Syiar & Dakwah' | 'Kaderisasi & Minat Bakat' | 'Humas & Media' | 'Dana Usaha & Sosial' | 'DKM';
   avatar: string;
+  avatarPosition?: string;
   quote?: string;
   phone?: string;
   whatsapp?: string;

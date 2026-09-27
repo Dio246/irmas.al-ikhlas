@@ -50,6 +50,11 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
     return `https://wa.me/${intl}`;
   };
 
+  const getImagePositionClass = (p: Pengurus) => {
+    if (p.avatarPosition) return p.avatarPosition;
+    return 'object-center';
+  };
+
   const content = (
     <div className="space-y-8 sm:space-y-10">
       {/* Leadership & DKM Header Badge */}
@@ -113,7 +118,7 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
                         <img
                           src={resolveAsset(p.avatar)}
                           alt={p.name}
-                          className="w-full h-full object-cover object-center"
+                          className={`w-full h-full object-cover ${getImagePositionClass(p)}`}
                           referrerPolicy="no-referrer"
                         />
                       </div>
@@ -187,7 +192,7 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
                           <img
                             src={resolveAsset(p.avatar)}
                             alt={p.name}
-                            className="w-full h-full object-cover object-center"
+                            className={`w-full h-full object-cover ${getImagePositionClass(p)}`}
                             referrerPolicy="no-referrer"
                           />
                         </div>
@@ -263,7 +268,7 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
                           <img
                             src={resolveAsset(p.avatar)}
                             alt={p.name}
-                            className="w-full h-full object-cover object-center"
+                            className={`w-full h-full object-cover ${getImagePositionClass(p)}`}
                             referrerPolicy="no-referrer"
                           />
                         </div>
@@ -337,26 +342,26 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4">
-              {/* Foto Profil Pengurus (DKM, Pembina, & BPH) */}
-              <div className="relative w-full aspect-square max-h-48 sm:max-h-60 rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-xs flex items-center justify-center mx-auto">
+            <div className="overflow-y-auto p-4 sm:p-5 space-y-3 sm:space-y-3.5">
+              {/* Foto Profil Pengurus (DKM, Pembina, & BPH) - Ukuran proporsional & compact agar info terlihat */}
+              <div className="relative w-36 h-44 sm:w-44 sm:h-52 rounded-2xl overflow-hidden bg-slate-100 border-2 border-emerald-600/30 shadow-md flex items-center justify-center mx-auto">
                 <img
                   src={resolveAsset(selectedPhoto.avatar)}
                   alt={selectedPhoto.name}
-                  className="w-full h-full object-cover object-center"
+                  className={`w-full h-full object-cover ${getImagePositionClass(selectedPhoto)}`}
                   referrerPolicy="no-referrer"
                 />
               </div>
 
               {/* Data Identitas */}
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">{selectedPhoto.name}</h3>
+              <div className="text-center">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">{selectedPhoto.name}</h3>
                 <p className="text-xs sm:text-sm font-semibold text-emerald-800 mt-0.5">{selectedPhoto.role}</p>
               </div>
 
               {/* Amanah & Kutipan */}
               {selectedPhoto.quote && (
-                <div className="bg-slate-50 p-3 sm:p-3.5 rounded-xl border border-slate-200/80">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-left">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Amanah & Pesan:</p>
                   <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed">
                     "{selectedPhoto.quote}"

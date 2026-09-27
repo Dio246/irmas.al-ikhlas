@@ -65,7 +65,8 @@ export const dkmList: Pengurus[] = [
     name: "Ust. Rosadi",
     role: "Ketua DKM",
     division: "DKM",
-    avatar: "/Foto BPH/DKM/Ketua DKM.12.38.jpeg",
+    avatar: "/Foto BPH/DKM/Ketua DKM.jpeg",
+    avatarPosition: "object-top",
     quote: "Pemimpin dan penanggung jawab kemakmuran Masjid Jamie Al-Ikhlas serta pelindung utama Ikatan Remaja Masjid.",
     whatsapp: "",
     phone: "-"
@@ -108,7 +109,8 @@ export const pengurusList: Pengurus[] = [
     name: "Ahmad Sofyan",
     role: "Pembantu Pembina 1",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/pembantu pembina 1.jpeg",
+    avatarPosition: "object-center",
     quote: "Mendampingi serta membantu pembina dalam pengawasan, pembinaan pemuda-pemudi, dan kelancaran program kerja IRMAS.",
     whatsapp: "",
     phone: "-"
@@ -128,7 +130,8 @@ export const pengurusList: Pengurus[] = [
     name: "M. Addym Jaka Anugrah",
     role: "Ketua IRMAS",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/Ketua Irmas.11.41.jpeg",
+    avatar: "/Foto BPH/IRMAS/ketua irmas.jpeg",
+    avatarPosition: "object-center",
     quote: "Bertanggung jawab terhadap kesinambungan dan keberlangsungan organisasi baik internal maupun eksternal demi ridho Allah SWT.",
     whatsapp: "+62 838-6481-993",
     phone: "0838-6481-993"
@@ -138,7 +141,8 @@ export const pengurusList: Pengurus[] = [
     name: "Danish Alfisyahri P. S.",
     role: "Wakil Ketua",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/wakil ketua irmas.jpeg",
+    avatarPosition: "object-center",
     quote: "Mengkoordinir kelancaran program kerja dan siap menyokong kepemimpinan organisasi.",
     whatsapp: "+62 878-4753-3981",
     phone: "0878-4753-3981"
@@ -158,7 +162,8 @@ export const pengurusList: Pengurus[] = [
     name: "Talita Hasna Salsabila",
     role: "Sekretaris 2",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/sekertaris 2.jpeg",
+    avatarPosition: "object-center",
     quote: "Mendukung kelancaran tata kelola arsip, notulensi rapat, dan ketertiban administrasi persyarikatan.",
     whatsapp: "+62 878-5218-3937",
     phone: "0878-5218-3937"
@@ -168,7 +173,8 @@ export const pengurusList: Pengurus[] = [
     name: "Sabrina Zakiyyah Amani",
     role: "Bendahara 1",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/bendahara 1.jpeg",
+    avatarPosition: "object-center",
     quote: "Bertanggung jawab terhadap pengelolaan keuangan kas dan inventarisasi persyarikatan secara amanah dan transparan.",
     whatsapp: "+62 813-1513-0521",
     phone: "0813-1513-0521"
@@ -178,7 +184,8 @@ export const pengurusList: Pengurus[] = [
     name: "Alifah Huwaida",
     role: "Bendahara 2",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/bendahara 2.jpeg",
+    avatarPosition: "object-center",
     quote: "Mencatat sirkulasi uang kas iuran anggota, sumbangan masyarakat, dan pertanggungjawaban dana kegiatan.",
     whatsapp: "+62 831-9865-9462",
     phone: "0831-9865-9462"
