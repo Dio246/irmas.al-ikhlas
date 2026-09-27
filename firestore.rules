@@ -4,15 +4,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Galeri dokumentasi bersama publik IRMAS Masjid Jamie Al-Ikhlas
     // Siapa saja (jamaah/pengurus dari HP atau Laptop) dapat membaca dokumentasi kegiatan
-    // dan menambahkan dokumentasi kegiatan baru
+    // dan menambahkan/mengupdate dokumentasi kegiatan
     match /gallery_items/{itemId} {
       allow read: if true;
-      allow create: if request.resource.data.title is string
-                    && request.resource.data.title.size() > 0
-                    && request.resource.data.title.size() <= 200
-                    && request.resource.data.category is string
-                    && request.resource.data.imageUrl is string;
-      allow update, delete: if true;
+      allow write: if true;
     }
   }
 }

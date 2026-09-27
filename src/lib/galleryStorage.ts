@@ -103,6 +103,29 @@ export async function saveCustomGalleryItem(item: GalleryItem): Promise<void> {
   }
 }
 
+export async function deleteCustomGalleryItem(itemId: string): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.delete(itemId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    // ignore
+  }
+
+  try {
+    const current = loadFromLocalStorage();
+    const updated = current.filter((it) => it.id !== itemId);
+    localStorage.setItem('irmas_custom_gallery_items', JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Compresses an image file client-side to optimal web dimensions and quality.
  * Lightweight, fast, and smooth on mobile devices without lag.

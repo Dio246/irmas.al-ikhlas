@@ -82,11 +82,16 @@ export function subscribeToGalleryItems(
   onError?: (error: Error) => void
 ): () => void {
   try {
-    const q = query(collection(db, GALLERY_COLLECTION), orderBy('createdAt', 'asc'));
+    const colRef = collection(db, GALLERY_COLLECTION);
     return onSnapshot(
-      q,
+      colRef,
       (snapshot) => {
-        const items = snapshot.docs.map(d => d.data() as GalleryItem);
+        const items = snapshot.docs.map(d => ({
+          ...(d.data() as GalleryItem),
+          id: d.id || (d.data() as GalleryItem).id
+        }));
+        // Sort in memory by createdAt ascending so older first, newest last
+        items.sort((a, b) => ((a as any).createdAt || 0) - ((b as any).createdAt || 0));
         onUpdate(items);
       },
       (err) => {

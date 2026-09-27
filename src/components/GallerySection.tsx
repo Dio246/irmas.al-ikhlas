@@ -80,11 +80,13 @@ import {
 import {
   loadCustomGalleryItems,
   saveCustomGalleryItem,
+  deleteCustomGalleryItem,
   compressImageFile
 } from '../lib/galleryStorage';
 import {
   saveGalleryItemToFirestore,
-  subscribeToGalleryItems
+  subscribeToGalleryItems,
+  deleteGalleryItemFromFirestore
 } from '../lib/firebaseGalleryService';
 
 interface GallerySectionProps {
@@ -95,11 +97,14 @@ interface ActivityCardProps {
   item: GalleryItem;
   getCategoryLabel: (cat: GalleryCategory) => string;
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
+  onDelete?: (item: GalleryItem) => void;
+  isCustom?: boolean;
 }
 
-const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onSelectImage }) => {
+const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onSelectImage, onDelete, isCustom }) => {
   const imagesList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const [activeIdx, setActiveIdx] = useState(0);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   // Lightweight touch tracking that NEVER conflicts with mobile vertical scrolling
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -187,21 +192,74 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover:opacity-80 transition-opacity pointer-events-none" />
 
-        {/* Top Badges */}
+        {/* Top Badges & Actions */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
           {/* Category Pill */}
           <span className="bg-emerald-700/95 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-0.5 rounded-md shadow-xs pointer-events-auto">
             {getCategoryLabel(item.category)}
           </span>
 
-          {/* Multiple Photos Count Indicator with Scroll Hint */}
-          {imagesList.length > 1 && (
-            <span className="bg-black/65 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs pointer-events-auto select-none">
-              <Images className="w-3 h-3 text-emerald-300 shrink-0" />
-              <span className="tabular-nums">{activeIdx + 1}/{imagesList.length} Foto • Geser ➔</span>
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            {/* Multiple Photos Count Indicator with Scroll Hint */}
+            {imagesList.length > 1 && (
+              <span className="bg-black/65 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs select-none">
+                <Images className="w-3 h-3 text-emerald-300 shrink-0" />
+                <span className="tabular-nums">{activeIdx + 1}/{imagesList.length} Foto</span>
+              </span>
+            )}
+
+            {/* Delete button for user-uploaded custom documentation */}
+            {isCustom && onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowConfirmDelete(true);
+                }}
+                title="Hapus dokumentasi ini"
+                aria-label="Hapus dokumentasi ini"
+                className="w-7 h-7 rounded-full bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center backdrop-blur-xs shadow-md cursor-pointer transition-transform active:scale-90"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Delete Confirmation Overlay inside card */}
+        {showConfirmDelete && (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-30 flex flex-col items-center justify-center p-4 text-center text-white"
+          >
+            <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-2">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <h4 className="text-sm font-bold text-white mb-1">Hapus Dokumentasi Ini?</h4>
+            <p className="text-xs text-slate-300 mb-3 max-w-[240px]">
+              Dokumentasi ini akan dihapus dari Cloud dan galeri semua perangkat.
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  onDelete?.(item);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold text-white shadow-sm cursor-pointer"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Left & Right Interactive Scroll Arrows (if multiple photos) */}
         {imagesList.length > 1 && (
@@ -385,27 +443,28 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   useEffect(() => {
     // 1. Subscribe to real-time Firestore updates across all devices
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
-      if (remoteItems && remoteItems.length > 0) {
-        setItems(prev => {
-          const map = new Map<string, GalleryItem>();
-          // Base static items
-          initialGalleryData.forEach(item => map.set(item.id, item));
-          // Existing items
-          prev.forEach(item => map.set(item.id, item));
-          // Remote items from Firestore (available on ALL devices)
+      setItems(prev => {
+        const map = new Map<string, GalleryItem>();
+        // Base static items
+        initialGalleryData.forEach(item => map.set(item.id, item));
+        // Keep existing non-conflicting items
+        prev.forEach(item => map.set(item.id, item));
+        // Remote items from Firestore (available on ALL devices)
+        if (remoteItems && remoteItems.length > 0) {
           remoteItems.forEach(item => map.set(item.id, item));
-          return Array.from(map.values());
-        });
-      }
+        }
+        return Array.from(map.values());
+      });
     });
 
     // 2. Also load any local items from IndexedDB and sync to cloud if not yet synced
     loadCustomGalleryItems().then((localItems) => {
       if (localItems && localItems.length > 0) {
         setItems(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newItems = localItems.filter(c => !existingIds.has(c.id));
-          return [...prev, ...newItems];
+          const map = new Map<string, GalleryItem>();
+          prev.forEach(item => map.set(item.id, item));
+          localItems.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
         });
         // Sync local items to Firestore so other devices can immediately see them
         localItems.forEach(item => {
@@ -577,6 +636,26 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       await saveCustomGalleryItem(newItem);
     } catch (idbErr) {
       console.warn('Gagal simpan ke IndexedDB:', idbErr);
+    }
+  };
+
+  // Delete a documentation item from Firestore and local storage
+  const handleDeleteItem = async (targetItem: GalleryItem) => {
+    // 1. Immediately remove from local state
+    setItems(prev => prev.filter(it => it.id !== targetItem.id));
+    
+    // 2. Remove from Firestore so it deletes on all devices
+    try {
+      await deleteGalleryItemFromFirestore(targetItem.id);
+    } catch (err) {
+      console.warn('Gagal menghapus dari Firestore:', err);
+    }
+
+    // 3. Remove from local storage / IndexedDB
+    try {
+      await deleteCustomGalleryItem(targetItem.id);
+    } catch (err) {
+      console.warn('Gagal menghapus dari penyimpanan lokal:', err);
     }
   };
 
@@ -803,14 +882,19 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
         {/* Gallery Grid with Interactive Multi-Photo Scrollable Cards */}
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <ActivityCard
-                key={item.id}
-                item={item}
-                getCategoryLabel={getCategoryLabel}
-                onSelectImage={onSelectImage}
-              />
-            ))}
+            {filteredItems.map((item) => {
+              const isDefault = item.id === 'gal-1' || item.id === 'gal-2';
+              return (
+                <ActivityCard
+                  key={item.id}
+                  item={item}
+                  getCategoryLabel={getCategoryLabel}
+                  onSelectImage={onSelectImage}
+                  isCustom={!isDefault}
+                  onDelete={handleDeleteItem}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
