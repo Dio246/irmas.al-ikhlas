@@ -82,6 +82,10 @@ import {
   saveCustomGalleryItem,
   compressImageFile
 } from '../lib/galleryStorage';
+import {
+  saveGalleryItemToFirestore,
+  subscribeToGalleryItems
+} from '../lib/firebaseGalleryService';
 
 interface GallerySectionProps {
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
@@ -377,17 +381,44 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   const [addSuccessToast, setAddSuccessToast] = useState(false);
   const [lastSavedFolderUrl, setLastSavedFolderUrl] = useState<string | null>(null);
 
-  // Load custom items from IndexedDB asynchronously on mount (appended at bottom)
+  // Load custom items from Firestore in real-time, plus local storage fallback
   useEffect(() => {
-    loadCustomGalleryItems().then((customItems) => {
-      if (customItems && customItems.length > 0) {
+    // 1. Subscribe to real-time Firestore updates across all devices
+    const unsubscribe = subscribeToGalleryItems((remoteItems) => {
+      if (remoteItems && remoteItems.length > 0) {
         setItems(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newItems = customItems.filter(c => !existingIds.has(c.id));
-          return [...prev, ...newItems];
+          const map = new Map<string, GalleryItem>();
+          // Base static items
+          initialGalleryData.forEach(item => map.set(item.id, item));
+          // Existing items
+          prev.forEach(item => map.set(item.id, item));
+          // Remote items from Firestore (available on ALL devices)
+          remoteItems.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
         });
       }
     });
+
+    // 2. Also load any local items from IndexedDB and sync to cloud if not yet synced
+    loadCustomGalleryItems().then((localItems) => {
+      if (localItems && localItems.length > 0) {
+        setItems(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newItems = localItems.filter(c => !existingIds.has(c.id));
+          return [...prev, ...newItems];
+        });
+        // Sync local items to Firestore so other devices can immediately see them
+        localItems.forEach(item => {
+          saveGalleryItemToFirestore(item).catch(err => {
+            console.warn('Auto-sync item to Firestore failed:', err);
+          });
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Check Drive session on mount
@@ -529,10 +560,24 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     setIsValidatingFiles(false);
   };
 
-  // Persist gallery items (appended to bottom, below Galeri 2)
+  // Persist gallery items (saved to Firebase Cloud Firestore for all devices + local fallback)
   const persistNewItem = async (newItem: GalleryItem) => {
-    setItems(prev => [...prev, newItem]);
-    await saveCustomGalleryItem(newItem);
+    setItems(prev => {
+      if (prev.some(p => p.id === newItem.id)) return prev;
+      return [...prev, newItem];
+    });
+    // Save to Firestore so every device/user sees it instantly in real-time
+    try {
+      await saveGalleryItemToFirestore(newItem);
+    } catch (fsErr) {
+      console.warn('Gagal simpan ke Firebase Firestore:', fsErr);
+    }
+    // Also save to IndexedDB as local cache
+    try {
+      await saveCustomGalleryItem(newItem);
+    } catch (idbErr) {
+      console.warn('Gagal simpan ke IndexedDB:', idbErr);
+    }
   };
 
   // Submit Handler: Upload otomatis ke Google Drive jekb66476@gmail.com dengan sanitasi ketat & Anti-Spam
@@ -736,8 +781,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
-                <span className="font-bold">Alhamdulillah, dokumentasi berhasil disimpan!</span>
-                <p className="text-xs text-emerald-700 mt-0.5">Foto kegiatan kini telah tayang di galeri website IRMAS.</p>
+                <span className="font-bold">Alhamdulillah, dokumentasi berhasil diterbitkan!</span>
+                <p className="text-xs text-emerald-700 mt-0.5">Foto kegiatan langsung tersinkronisasi ke Cloud & tayang di semua HP dan laptop pengunjung.</p>
               </div>
             </div>
             {lastSavedFolderUrl && (

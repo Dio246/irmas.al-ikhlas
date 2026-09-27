@@ -107,7 +107,7 @@ export async function saveCustomGalleryItem(item: GalleryItem): Promise<void> {
  * Compresses an image file client-side to optimal web dimensions and quality.
  * Lightweight, fast, and smooth on mobile devices without lag.
  */
-export function compressImageFile(file: File, maxWidth = 1200, quality = 0.8): Promise<string> {
+export function compressImageFile(file: File, maxWidth = 1000, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -140,6 +140,40 @@ export function compressImageFile(file: File, maxWidth = 1200, quality = 0.8): P
     };
     reader.onerror = () => reject(new Error('Gagal membaca file'));
     reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Creates an ultra-lightweight web thumbnail (e.g. max 450px)
+ * ensuring base64 representations stay well under Firestore limits (<150KB)
+ */
+export function compressToCompactDataUrl(dataUrl: string, maxWidth = 450, quality = 0.65): Promise<string> {
+  return new Promise((resolve) => {
+    if (!dataUrl.startsWith('data:')) {
+      resolve(dataUrl);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
   });
 }
 
