@@ -128,9 +128,83 @@ export async function deleteCustomGalleryItem(itemId: string): Promise<void> {
 
 /**
  * Compresses an image file client-side to optimal web dimensions and quality.
- * Lightweight, fast, and smooth on mobile devices without lag.
+ * Lightweight, fast, robust on mobile devices (handles camera raw, HEIC, large orientation metadata).
  */
-export function compressImageFile(file: File, maxWidth = 1000, quality = 0.75): Promise<string> {
+export async function compressImageFile(file: File, maxWidth = 1000, quality = 0.75): Promise<string> {
+  // Method 1: Modern high-performance createImageBitmap (built into modern Android & iOS browsers, handles huge photos smoothly without memory spikes)
+  if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      let width = bitmap.width;
+      let height = bitmap.height;
+
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
+        return canvas.toDataURL('image/jpeg', quality);
+      }
+      bitmap.close();
+    } catch (bitmapErr) {
+      console.warn('createImageBitmap fallback ke Image loading:', bitmapErr);
+    }
+  }
+
+  // Method 2: Blob Object URL (more reliable on mobile devices than full base64 FileReader memory dump)
+  try {
+    const objectUrl = URL.createObjectURL(file);
+    const result = await new Promise<string>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(objectUrl);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch (canvasErr) {
+          reject(canvasErr);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Gagal memproses gambar'));
+      };
+      img.src = objectUrl;
+    });
+    return result;
+  } catch (objectUrlErr) {
+    console.warn('Blob URL fallback ke FileReader:', objectUrlErr);
+  }
+
+  // Method 3: Standard FileReader fallback
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -161,7 +235,7 @@ export function compressImageFile(file: File, maxWidth = 1000, quality = 0.75): 
       img.onerror = () => reject(new Error('Gagal memproses gambar'));
       img.src = e.target?.result as string;
     };
-    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.onerror = () => reject(new Error('Gagal membaca file dari penyimpanan perangkat'));
     reader.readAsDataURL(file);
   });
 }

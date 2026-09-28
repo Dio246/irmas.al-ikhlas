@@ -989,7 +989,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileChange}
-                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
                     multiple
                     className="hidden"
                   />

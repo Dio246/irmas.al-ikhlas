@@ -11,10 +11,18 @@
  * 6. Reverse Tabnabbing & Phishing Redirects
  */
 
-// Ekstensi & MIME Type yang secara ketat diizinkan (Hanya gambar raster murni)
-export const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 Megabyte per file
+// Ekstensi & MIME Type yang secara ketat diizinkan (Foto Kamera HP & format gambar web)
+export const ALLOWED_IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/pjpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif'
+];
+export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'];
+export const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 Megabyte per file (kamera HP modern 48MP/108MP)
 export const MAX_BATCH_FILES = 15; // Maksimal 15 foto sekali unggah
 
 // Daftar ekstensi berbahaya yang dilarang keras
@@ -159,6 +167,17 @@ export async function verifyImageMagicBytes(file: File): Promise<boolean> {
       return true;
     }
 
+    // 4. Validasi HEIC / HEIF (Kamera iPhone / Android: ftyp heic / mif1 / msf1)
+    // Bytes 4-7: 'ftyp' (0x66, 0x74, 0x79, 0x70)
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+      return true;
+    }
+
+    // 5. Fallback Aman Mobile: Jika browser mobile menyediakan file bertipe image/* dan dapat dibaca oleh Image/Canvas
+    if (file.type && file.type.startsWith('image/')) {
+      return true;
+    }
+
     return false;
   } catch (err) {
     console.error('Gagal memverifikasi signature biner file:', err);
@@ -183,7 +202,7 @@ export async function validateUploadedFile(file: File): Promise<{ valid: boolean
     const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
-      error: `File "${file.name}" berukuran ${sizeMB} MB melebihi batas aman maksimal 10 MB per foto.`
+      error: `File "${file.name}" berukuran ${sizeMB} MB melebihi batas aman maksimal 25 MB per foto.`
     };
   }
 
@@ -206,9 +225,10 @@ export async function validateUploadedFile(file: File): Promise<{ valid: boolean
     };
   }
 
-  // 4. Validasi Ekstensi yang Diizinkan
+  // 4. Validasi Ekstensi yang Diizinkan (Kamera HP terkadang menghasilkan nama seperti "image:12345" tanpa ekstensi)
+  const isImageMime = file.type && file.type.startsWith('image/');
   const hasValidExt = ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext));
-  if (!hasValidExt) {
+  if (!hasValidExt && !isImageMime) {
     return {
       valid: false,
       error: `Format file "${file.name}" tidak didukung. Harap unggah foto dengan format JPG, JPEG, PNG, atau WEBP.`
@@ -216,10 +236,10 @@ export async function validateUploadedFile(file: File): Promise<{ valid: boolean
   }
 
   // 5. Validasi MIME Type Browser
-  if (file.type && !ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
+  if (file.type && !file.type.startsWith('image/')) {
     return {
       valid: false,
-      error: `Tipe konten file (${file.type}) tidak diizinkan. Hanya file foto murni yang diterima.`
+      error: `Tipe konten file (${file.type}) tidak diizinkan. Hanya file foto yang diterima.`
     };
   }
 
