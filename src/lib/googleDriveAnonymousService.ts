@@ -36,7 +36,7 @@ function doPost(e) {
     }
 
     var contents = e.postData.contents;
-    // Cegah payload raksasa yang berpotensi membebani kuota atau serangan DoS (Maks 15MB teks)
+    // Cegah payload raksasa yang berpotensi membebani kuota atau serangan DoS (Maks 20MB teks)
     if (contents.length > 20 * 1024 * 1024) {
       throw new Error("Ukuran data melebihi batas aman maksimal.");
     }
@@ -48,6 +48,28 @@ function doPost(e) {
       data = e.parameter;
     }
     
+    // Fitur: Hapus File dari Google Drive berdasarkan File ID
+    if (data.action === "delete" || data.action === "deleteFile") {
+      var fileIdToDelete = (data.fileId || "").toString().trim();
+      if (!fileIdToDelete) {
+        throw new Error("File ID yang akan dihapus tidak disertakan.");
+      }
+      try {
+        var fileToTrash = DriveApp.getFileById(fileIdToDelete);
+        fileToTrash.setTrashed(true);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          message: "File berhasil dihapus dari Google Drive.",
+          fileId: fileIdToDelete
+        })).setMimeType(ContentService.MimeType.JSON);
+      } catch (delErr) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          message: "Gagal menghapus file di Drive: " + delErr.message
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // 1. Folder Utama IRMAS di Google Drive
     var rootFolderName = "Dokumentasi IRMAS Al-Ikhlas";
     var rootFolders = DriveApp.getFoldersByName(rootFolderName);
@@ -101,10 +123,11 @@ function doPost(e) {
     var blob = Utilities.newBlob(decoded, mimeType, cleanFileName);
     var file = targetFolder.createFile(blob);
     
-    // Berikan izin baca publik agar foto dapat ditampilkan di website
+    // 1. Berikan izin baca publik otomatis via DriveApp: Anyone with link can view
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     
     var fileId = file.getId();
+    // 2. Format Direct Embed URL resmi Google Drive lh3.googleusercontent.com/d/FILE_ID
     var directUrl = "https://lh3.googleusercontent.com/d/" + fileId;
     var driveUrl = "https://drive.google.com/file/d/" + fileId + "/view";
     var folderUrl = targetFolder.getUrl();
@@ -212,6 +235,45 @@ export async function uploadToGoogleDriveNoLogin(
     folderUrl: result.folderUrl,
     folderName: result.folderName
   };
+}
+
+/**
+ * Deletes a file from Google Drive via the Google Apps Script Web App
+ */
+export async function deleteFromGoogleDriveNoLogin(fileId: string, scriptUrl?: string): Promise<{ success: boolean; message: string }> {
+  if (!fileId) return { success: true, message: 'Tidak ada file ID' };
+  
+  const targetUrl = (scriptUrl && scriptUrl.trim().startsWith('http')) 
+    ? scriptUrl.trim() 
+    : DEFAULT_SCRIPT_URL;
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'delete',
+        fileId: fileId
+      })
+    });
+
+    if (!res.ok) {
+      return { success: false, message: `HTTP Error: ${res.status}` };
+    }
+
+    const json = await res.json();
+    return {
+      success: json.status === 'success',
+      message: json.message || 'File diproses'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : 'Koneksi skrip gagal'
+    };
+  }
 }
 
 /**

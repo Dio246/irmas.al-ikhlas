@@ -45,12 +45,17 @@ export async function saveGalleryItemToFirestore(item: GalleryItem): Promise<voi
       }
     }
 
-    const payload = {
+    const payload: Record<string, any> = {
       ...item,
       imageUrl: sanitizedImages[0] || item.imageUrl,
       images: sanitizedImages,
-      createdAt: Date.now()
+      createdAt: (item as any).createdAt || Date.now()
     };
+    if (item.driveFileId) payload.driveFileId = item.driveFileId;
+    if (item.driveFileIds && item.driveFileIds.length > 0) payload.driveFileIds = item.driveFileIds;
+    if (item.driveUrl) payload.driveUrl = item.driveUrl;
+    if (item.driveFolderUrl) payload.driveFolderUrl = item.driveFolderUrl;
+
     await setDoc(docRef, payload, { merge: true });
   } catch (error) {
     console.error('Gagal menyimpan dokumentasi ke Firestore:', error);

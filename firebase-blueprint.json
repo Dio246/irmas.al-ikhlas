@@ -51,6 +51,16 @@
           "description": "Jumlah jamaah / peserta"
         },
         {
+          "name": "driveFileId",
+          "type": "string",
+          "description": "Google Drive File ID utama"
+        },
+        {
+          "name": "driveFileIds",
+          "type": "array",
+          "description": "Daftar Google Drive File ID"
+        },
+        {
           "name": "createdAt",
           "type": "number",
           "description": "Timestamp pembuatan item"

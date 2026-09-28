@@ -304,6 +304,25 @@ export async function uploadPhotoToGoogleDrive(
 }
 
 /**
+ * Deletes a file from Google Drive via Google Drive API v3 (drive.files.delete)
+ */
+export async function deletePhotoFromGoogleDrive(fileId: string, token: string): Promise<boolean> {
+  if (!fileId) return false;
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return res.ok || res.status === 404;
+  } catch (err) {
+    console.error('Error deleting file via Drive API:', err);
+    return false;
+  }
+}
+
+/**
  * Converts any shared Google Drive file link into a direct web image URL
  */
 export function convertGoogleDriveUrl(url: string): string {

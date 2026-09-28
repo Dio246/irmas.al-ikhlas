@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   FileImage,
   Sparkles,
+  RefreshCw,
   Link as LinkIcon,
   Copy,
   CheckCheck,
@@ -75,6 +76,7 @@ import {
   getSavedScriptUrl,
   saveScriptUrl,
   uploadToGoogleDriveNoLogin,
+  deleteFromGoogleDriveNoLogin,
   testDriveScriptConnection
 } from '../lib/googleDriveAnonymousService';
 import {
@@ -88,6 +90,9 @@ import {
   subscribeToGalleryItems,
   deleteGalleryItemFromFirestore
 } from '../lib/firebaseGalleryService';
+import {
+  deletePhotoFromGoogleDrive
+} from '../lib/googleDriveService';
 
 interface GallerySectionProps {
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
@@ -97,7 +102,7 @@ interface ActivityCardProps {
   item: GalleryItem;
   getCategoryLabel: (cat: GalleryCategory) => string;
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
-  onDelete?: (item: GalleryItem) => void;
+  onDelete?: (item: GalleryItem) => Promise<void> | void;
   isCustom?: boolean;
 }
 
@@ -105,6 +110,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
   const imagesList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const [activeIdx, setActiveIdx] = useState(0);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isDeletingCard, setIsDeletingCard] = useState(false);
 
   // Lightweight touch tracking that NEVER conflicts with mobile vertical scrolling
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -230,32 +236,48 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
         {showConfirmDelete && (
           <div 
             onClick={(e) => e.stopPropagation()} 
-            className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-30 flex flex-col items-center justify-center p-4 text-center text-white"
+            className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs z-30 flex flex-col items-center justify-center p-4 text-center text-white"
           >
             <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-2">
               <Trash2 className="w-5 h-5" />
             </div>
             <h4 className="text-sm font-bold text-white mb-1">Hapus Dokumentasi Ini?</h4>
             <p className="text-xs text-slate-300 mb-3 max-w-[240px]">
-              Dokumentasi ini akan dihapus dari Cloud dan galeri semua perangkat.
+              Dokumentasi ini akan dihapus secara permanen dari Google Drive dan database Cloud.
             </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                disabled={isDeletingCard}
                 onClick={() => setShowConfirmDelete(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowConfirmDelete(false);
-                  onDelete?.(item);
+                disabled={isDeletingCard}
+                onClick={async () => {
+                  try {
+                    setIsDeletingCard(true);
+                    if (onDelete) {
+                      await onDelete(item);
+                    }
+                  } finally {
+                    setIsDeletingCard(false);
+                    setShowConfirmDelete(false);
+                  }
                 }}
-                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold text-white shadow-sm cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold text-white shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
-                Ya, Hapus
+                {isDeletingCard ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <span>Ya, Hapus</span>
+                )}
               </button>
             </div>
           </div>
@@ -382,21 +404,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 };
 
 export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage }) => {
-  // Load initial data merged with any saved custom items from localStorage (appended at bottom)
-  const [items, setItems] = useState<GalleryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('irmas_custom_gallery_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return [...initialGalleryData, ...parsed];
-        }
-      }
-    } catch {
-      // ignore parsing error
-    }
-    return initialGalleryData;
-  });
+  // State galeri: berawal dari data baku, lalu disinkronkan secara eksklusif dari Cloud Firestore terpusat
+  const [items, setItems] = useState<GalleryItem[]>(initialGalleryData);
 
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -439,40 +448,20 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   const [addSuccessToast, setAddSuccessToast] = useState(false);
   const [lastSavedFolderUrl, setLastSavedFolderUrl] = useState<string | null>(null);
 
-  // Load custom items from Firestore in real-time, plus local storage fallback
+  // Load items from Firestore in real-time. Firestore is the Single Source of Truth!
   useEffect(() => {
-    // 1. Subscribe to real-time Firestore updates across all devices
+    // 1. Subscribe to real-time Firestore updates across ALL devices
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
-      setItems(prev => {
+      setItems(() => {
         const map = new Map<string, GalleryItem>();
         // Base static items
         initialGalleryData.forEach(item => map.set(item.id, item));
-        // Keep existing non-conflicting items
-        prev.forEach(item => map.set(item.id, item));
         // Remote items from Firestore (available on ALL devices)
         if (remoteItems && remoteItems.length > 0) {
           remoteItems.forEach(item => map.set(item.id, item));
         }
         return Array.from(map.values());
       });
-    });
-
-    // 2. Also load any local items from IndexedDB and sync to cloud if not yet synced
-    loadCustomGalleryItems().then((localItems) => {
-      if (localItems && localItems.length > 0) {
-        setItems(prev => {
-          const map = new Map<string, GalleryItem>();
-          prev.forEach(item => map.set(item.id, item));
-          localItems.forEach(item => map.set(item.id, item));
-          return Array.from(map.values());
-        });
-        // Sync local items to Firestore so other devices can immediately see them
-        localItems.forEach(item => {
-          saveGalleryItemToFirestore(item).catch(err => {
-            console.warn('Auto-sync item to Firestore failed:', err);
-          });
-        });
-      }
     });
 
     return () => {
@@ -639,24 +628,57 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     }
   };
 
-  // Delete a documentation item from Firestore and local storage
+  // Delete a documentation item from Google Drive, Firestore, and local storage
   const handleDeleteItem = async (targetItem: GalleryItem) => {
-    // 1. Immediately remove from local state
-    setItems(prev => prev.filter(it => it.id !== targetItem.id));
-    
-    // 2. Remove from Firestore so it deletes on all devices
+    // 1. Remove from local storage / IndexedDB immediately so reload doesn't bring it back
+    try {
+      await deleteCustomGalleryItem(targetItem.id);
+    } catch (err) {
+      console.warn('Gagal menghapus dari penyimpanan lokal:', err);
+    }
+
+    // 2. Remove file(s) permanently from Google Drive
+    // If driveFileIds are present, delete each file from Google Drive
+    const fileIdsToDelete: string[] = [];
+    if (targetItem.driveFileIds && targetItem.driveFileIds.length > 0) {
+      fileIdsToDelete.push(...targetItem.driveFileIds);
+    } else if (targetItem.driveFileId) {
+      fileIdsToDelete.push(targetItem.driveFileId);
+    } else if (targetItem.driveUrl) {
+      const match = targetItem.driveUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) fileIdsToDelete.push(match[1]);
+    } else if (targetItem.imageUrl && targetItem.imageUrl.includes('lh3.googleusercontent.com/d/')) {
+      const match = targetItem.imageUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) fileIdsToDelete.push(match[1]);
+    }
+
+    for (const fid of fileIdsToDelete) {
+      try {
+        // Try deletion via Google Apps Script (Works without user OAuth login)
+        await deleteFromGoogleDriveNoLogin(fid, scriptUrl.trim());
+      } catch (scriptErr) {
+        console.warn('Gagal delete via Apps Script:', scriptErr);
+      }
+
+      // If user has an active OAuth token, also execute drive.files.delete via Google Drive API
+      if (driveToken) {
+        try {
+          await deletePhotoFromGoogleDrive(fid, driveToken);
+        } catch (apiErr) {
+          console.warn('Gagal delete via Drive API:', apiErr);
+        }
+      }
+    }
+
+    // 3. Remove document from Firebase Firestore so it is erased from ALL devices
     try {
       await deleteGalleryItemFromFirestore(targetItem.id);
     } catch (err) {
       console.warn('Gagal menghapus dari Firestore:', err);
     }
 
-    // 3. Remove from local storage / IndexedDB
-    try {
-      await deleteCustomGalleryItem(targetItem.id);
-    } catch (err) {
-      console.warn('Gagal menghapus dari penyimpanan lokal:', err);
-    }
+    // 4. Update local state
+    setItems(prev => prev.filter(it => it.id !== targetItem.id));
   };
 
   // Submit Handler: Upload otomatis ke Google Drive jekb66476@gmail.com dengan sanitasi ketat & Anti-Spam
@@ -692,6 +714,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
 
     try {
       const processedImages: string[] = [];
+      const uploadedFileIds: string[] = [];
       let primaryDriveUrl: string | undefined = undefined;
       let primaryFolderUrl: string | undefined = undefined;
 
@@ -710,6 +733,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
             cleanTitle
           );
           processedImages.push(driveResult.directUrl);
+          if (driveResult.fileId) {
+            uploadedFileIds.push(driveResult.fileId);
+          }
           if (!primaryDriveUrl) {
             primaryDriveUrl = driveResult.driveUrl;
           }
@@ -734,7 +760,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
         participants: Math.max(1, Math.min(10000, Number(newParticipants) || 30)),
         highlight: false,
         driveUrl: primaryDriveUrl,
-        driveFolderUrl: primaryFolderUrl
+        driveFolderUrl: primaryFolderUrl,
+        driveFileId: uploadedFileIds[0],
+        driveFileIds: uploadedFileIds
       };
 
       if (primaryFolderUrl) {

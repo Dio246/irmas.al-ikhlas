@@ -13,6 +13,8 @@ export interface GalleryItem {
   highlight?: boolean;
   driveUrl?: string;
   driveFolderUrl?: string;
+  driveFileId?: string;
+  driveFileIds?: string[];
 }
 
 export interface Pengurus {
