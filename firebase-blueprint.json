@@ -1,71 +1,33 @@
 {
-  "$schema": "https://firebase.google.com/docs/firestore/blueprint.schema.json",
-  "collections": [
-    {
-      "id": "gallery_items",
-      "description": "Koleksi foto dokumentasi kegiatan IRMAS Masjid Jamie Al-Ikhlas yang tersinkronisasi lintas semua perangkat",
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "ID unik dokumentasi"
-        },
-        {
-          "name": "title",
-          "type": "string",
-          "description": "Judul kegiatan dokumentasi"
-        },
-        {
-          "name": "category",
-          "type": "string",
-          "description": "Kategori kegiatan (kajian, sosial, phbi, rihlah, pelatihan, ramadhan)"
-        },
-        {
-          "name": "date",
-          "type": "string",
-          "description": "Tanggal pelaksanaan kegiatan"
-        },
-        {
-          "name": "location",
-          "type": "string",
-          "description": "Lokasi kegiatan"
-        },
-        {
-          "name": "imageUrl",
-          "type": "string",
-          "description": "URL foto utama (Google Drive atau URL terkompresi)"
-        },
-        {
-          "name": "images",
-          "type": "array",
-          "description": "Daftar URL foto kegiatan"
-        },
-        {
-          "name": "description",
-          "type": "string",
-          "description": "Deskripsi kegiatan"
-        },
-        {
-          "name": "participants",
-          "type": "number",
-          "description": "Jumlah jamaah / peserta"
-        },
-        {
-          "name": "driveFileId",
-          "type": "string",
-          "description": "Google Drive File ID utama"
-        },
-        {
-          "name": "driveFileIds",
-          "type": "array",
-          "description": "Daftar Google Drive File ID"
-        },
-        {
-          "name": "createdAt",
-          "type": "number",
-          "description": "Timestamp pembuatan item"
-        }
-      ]
+  "entities": {
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Dokumentasi kegiatan IRMAS Masjid Jamie Al-Ikhlas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "images": { "type": "array" },
+        "description": { "type": "string" },
+        "participants": { "type": "number" },
+        "highlight": { "type": "boolean" },
+        "driveUrl": { "type": "string" },
+        "driveFolderUrl": { "type": "string" },
+        "driveFileId": { "type": "string" },
+        "driveFileIds": { "type": "array" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "category", "imageUrl"]
     }
-  ]
+  },
+  "firestore": {
+    "/gallery_items/{itemId}": {
+      "schema": "#/entities/GalleryItem",
+      "description": "Koleksi foto dokumentasi kegiatan IRMAS Masjid Jamie Al-Ikhlas lintas semua perangkat"
+    }
+  }
 }

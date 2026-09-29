@@ -92,7 +92,9 @@ import {
 import {
   saveGalleryItemToFirestore,
   subscribeToGalleryItems,
-  deleteGalleryItemFromFirestore
+  deleteGalleryItemFromFirestore,
+  syncLocalItemsToFirestore,
+  getGalleryItemsFromFirestore
 } from '../lib/firebaseGalleryService';
 import {
   deletePhotoFromGoogleDrive
@@ -451,6 +453,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   // Success Feedback
   const [addSuccessToast, setAddSuccessToast] = useState(false);
   const [lastSavedFolderUrl, setLastSavedFolderUrl] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
+  const syncTimestampsRef = useRef<number[]>([]);
 
   // Load items from local storage AND Firestore in real-time
   useEffect(() => {
@@ -466,12 +471,32 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           localItems.forEach(item => map.set(item.id, item));
           return Array.from(map.values());
         });
+        // Auto-push any local items that haven't been saved to Firestore yet so other devices get them!
+        syncLocalItemsToFirestore(localItems).catch((syncErr) => {
+          console.warn('Auto-sync lokal ke Firestore gagal:', syncErr);
+        });
       }
     }).catch((err) => {
       console.warn('Gagal memuat galeri lokal:', err);
     });
 
-    // 2. Subscribe to real-time Firestore updates across ALL devices
+    // 2. Initial fetch from Firestore to ensure immediate population across all devices
+    getGalleryItemsFromFirestore().then((remoteItems) => {
+      if (!isMounted || !remoteItems || remoteItems.length === 0) return;
+      setItems(prev => {
+        const map = new Map<string, GalleryItem>();
+        initialGalleryData.forEach(item => map.set(item.id, item));
+        prev.forEach(item => {
+          if (!map.has(item.id)) map.set(item.id, item);
+        });
+        remoteItems.forEach(item => map.set(item.id, item));
+        return Array.from(map.values());
+      });
+    }).catch((fsErr) => {
+      console.warn('Gagal initial fetch dari Firestore:', fsErr);
+    });
+
+    // 3. Subscribe to real-time Firestore updates across ALL devices
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
       if (!isMounted) return;
       setItems(prev => {
@@ -650,10 +675,76 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       console.warn('Gagal simpan ke IndexedDB:', idbErr);
     }
 
-    // 3. Save to Firebase Cloud Firestore for multi-device sync in background
-    saveGalleryItemToFirestore(newItem).catch(fsErr => {
+    // 3. Save to Firebase Cloud Firestore for multi-device sync
+    try {
+      await saveGalleryItemToFirestore(newItem);
+    } catch (fsErr) {
       console.warn('Gagal simpan ke Firebase Firestore:', fsErr);
-    });
+    }
+  };
+
+  // Manual sync handler: Syncs local items to Firestore and pulls latest Firestore documents
+  // Batas maksimal: 5 kali dalam 1 menit (60 detik)
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+
+    const now = Date.now();
+    // Filter timestamps within the last 60 seconds (1-minute rolling window)
+    const recentSyncs = syncTimestampsRef.current.filter(t => now - t < 60000);
+    syncTimestampsRef.current = recentSyncs;
+
+    if (recentSyncs.length >= 5) {
+      const oldestSync = recentSyncs[0];
+      const waitSeconds = Math.max(1, Math.ceil((60000 - (now - oldestSync)) / 1000));
+      setSyncToast({
+        type: 'warning',
+        message: `Batas maksimal sinkronisasi adalah 5 kali dalam 1 menit. Silakan tunggu ${waitSeconds} detik lagi.`
+      });
+      setTimeout(() => setSyncToast(null), 4000);
+      return;
+    }
+
+    // Catat timestamp sinkronisasi saat ini
+    syncTimestampsRef.current.push(now);
+
+    setIsSyncing(true);
+    try {
+      // 1. If this device has any local items, sync them to Firestore
+      const localItems = await loadCustomGalleryItems();
+      if (localItems && localItems.length > 0) {
+        await syncLocalItemsToFirestore(localItems);
+      }
+
+      // 2. Fetch latest items from Cloud Firestore
+      const remoteItems = await getGalleryItemsFromFirestore();
+      setItems(prev => {
+        const map = new Map<string, GalleryItem>();
+        initialGalleryData.forEach(item => map.set(item.id, item));
+        prev.forEach(item => {
+          if (!map.has(item.id)) map.set(item.id, item);
+        });
+        if (remoteItems && remoteItems.length > 0) {
+          remoteItems.forEach(item => map.set(item.id, item));
+        }
+        return Array.from(map.values());
+      });
+
+      const remainingQuota = 5 - syncTimestampsRef.current.length;
+      setSyncToast({
+        type: 'success',
+        message: `Sinkronisasi galeri cloud berhasil! Data terupdate untuk semua perangkat. (Tersisa ${remainingQuota}x kesempatan sinkronisasi menit ini)`
+      });
+      setTimeout(() => setSyncToast(null), 3500);
+    } catch (err) {
+      console.warn('Manual sync failed:', err);
+      setSyncToast({
+        type: 'warning',
+        message: 'Gagal sinkronisasi galeri. Periksa jaringan Anda.'
+      });
+      setTimeout(() => setSyncToast(null), 3500);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Delete a documentation item from Google Drive, Firestore, and local storage
@@ -896,6 +987,19 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
                 </button>
               ) : null}
 
+              {/* Sync Button for Cross-Device Updates */}
+              <button
+                type="button"
+                id="btn-sync-gallery"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                title="Sinkronkan foto antar perangkat (Cloud Firestore)"
+                className="inline-flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/90 hover:border-emerald-300 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-h-[42px] disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
+              </button>
+
               {/* Add Documentation Button */}
               <button
                 id="btn-add-documentation"
@@ -909,6 +1013,22 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           </div>
 
         </div>
+
+        {/* Sync Toast Feedback */}
+        {syncToast && (
+          <div className={`mb-6 p-3.5 border rounded-xl text-xs sm:text-sm flex items-center gap-2.5 shadow-xs animate-in fade-in ${
+            syncToast.type === 'warning'
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          }`}>
+            {syncToast.type === 'warning' ? (
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            )}
+            <span className="font-semibold">{syncToast.message}</span>
+          </div>
+        )}
 
         {/* Success Toast */}
         {addSuccessToast && (

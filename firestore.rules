@@ -9,5 +9,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Health-check / connection validation document
+    match /test/{docId} {
+      allow read: if true;
+    }
   }
 }

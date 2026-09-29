@@ -1,13 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
+  initializeFirestore,
   getFirestore, 
   collection, 
   doc, 
   setDoc, 
   getDocs, 
   onSnapshot, 
-  query, 
-  orderBy,
   deleteDoc
 } from 'firebase/firestore';
 import type { GalleryItem } from '../types';
@@ -17,8 +16,18 @@ import { compressToCompactDataUrl } from './galleryStorage';
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Use specific database ID configured for this project
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
+// Use specific database ID configured for this project with automatic long-polling detection
+// to prevent "Could not reach Cloud Firestore backend" in iframes, proxies, and preview domains
+export const db = (() => {
+  const databaseId = firebaseConfig.firestoreDatabaseId || undefined;
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true
+    }, databaseId);
+  } catch {
+    return getFirestore(app, databaseId);
+  }
+})();
 
 export const GALLERY_COLLECTION = 'gallery_items';
 
@@ -88,12 +97,40 @@ export async function saveGalleryItemToFirestore(item: GalleryItem): Promise<voi
  */
 export async function getGalleryItemsFromFirestore(): Promise<GalleryItem[]> {
   try {
-    const q = query(collection(db, GALLERY_COLLECTION), orderBy('createdAt', 'asc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => d.data() as GalleryItem);
+    const snapshot = await getDocs(collection(db, GALLERY_COLLECTION));
+    const items = snapshot.docs.map(d => ({
+      ...(d.data() as GalleryItem),
+      id: d.id || (d.data() as GalleryItem).id
+    }));
+    items.sort((a, b) => ((a as any).createdAt || 0) - ((b as any).createdAt || 0));
+    return items;
   } catch (error) {
     console.error('Gagal memuat galeri dari Firestore:', error);
     return [];
+  }
+}
+
+/**
+ * Automatically syncs local items from this device to Firestore
+ * so they instantly become visible on all other devices (phone, laptop, tablet).
+ */
+export async function syncLocalItemsToFirestore(localItems: GalleryItem[]): Promise<number> {
+  if (!localItems || localItems.length === 0) return 0;
+  try {
+    const remoteItems = await getGalleryItemsFromFirestore();
+    const remoteIds = new Set(remoteItems.map(it => it.id));
+    let synced = 0;
+
+    for (const item of localItems) {
+      if (!remoteIds.has(item.id)) {
+        await saveGalleryItemToFirestore(item);
+        synced++;
+      }
+    }
+    return synced;
+  } catch (err) {
+    console.warn('Gagal sinkronisasi item lokal ke Firestore:', err);
+    return 0;
   }
 }
 
