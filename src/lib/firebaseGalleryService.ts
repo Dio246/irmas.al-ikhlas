@@ -7,22 +7,30 @@ import {
   setDoc, 
   getDocs, 
   onSnapshot, 
-  deleteDoc
+  deleteDoc,
+  setLogLevel
 } from 'firebase/firestore';
 import type { GalleryItem } from '../types';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { compressToCompactDataUrl } from './galleryStorage';
 
+// Suppress internal retry and offline notice logs in browser console
+try {
+  setLogLevel('silent');
+} catch {
+  // Ignore if setLogLevel is restricted
+}
+
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Use specific database ID configured for this project with automatic long-polling detection
-// to prevent "Could not reach Cloud Firestore backend" in iframes, proxies, and preview domains
+// Use specific database ID configured for this project with forced long polling.
+// This completely avoids the failed WebChannel stream handshake in iframes/proxies/Cloud Run.
 export const db = (() => {
   const databaseId = firebaseConfig.firestoreDatabaseId || undefined;
   try {
     return initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true
+      experimentalForceLongPolling: true
     }, databaseId);
   } catch {
     return getFirestore(app, databaseId);
@@ -143,9 +151,27 @@ export function subscribeToGalleryItems(
   onUpdate: (items: GalleryItem[]) => void,
   onError?: (error: Error) => void
 ): () => void {
+  let isUnsubscribed = false;
+  let pollInterval: any = null;
+
+  const startFallbackPolling = () => {
+    if (pollInterval || isUnsubscribed) return;
+    pollInterval = setInterval(async () => {
+      if (isUnsubscribed) return;
+      try {
+        const items = await getGalleryItemsFromFirestore();
+        if (!isUnsubscribed && items && items.length > 0) {
+          onUpdate(items);
+        }
+      } catch {
+        // quiet retry in background
+      }
+    }, 20000);
+  };
+
   try {
     const colRef = collection(db, GALLERY_COLLECTION);
-    return onSnapshot(
+    const unsubscribeSnapshot = onSnapshot(
       colRef,
       (snapshot) => {
         const items = snapshot.docs.map(d => ({
@@ -157,13 +183,31 @@ export function subscribeToGalleryItems(
         onUpdate(items);
       },
       (err) => {
-        console.error('Error listening to Firestore gallery updates:', err);
+        // If code is unavailable (e.g. streaming blocked by browser iframe/proxy),
+        // fallback to polling without throwing fatal error
+        startFallbackPolling();
+        if ((err as any)?.code === 'unavailable') {
+          return;
+        }
         if (onError) onError(err);
       }
     );
-  } catch (error) {
-    console.error('Gagal inisialisasi listener Firestore:', error);
-    return () => {};
+
+    return () => {
+      isUnsubscribed = true;
+      if (pollInterval) clearInterval(pollInterval);
+      try {
+        unsubscribeSnapshot();
+      } catch {
+        // quiet cleanup
+      }
+    };
+  } catch {
+    startFallbackPolling();
+    return () => {
+      isUnsubscribed = true;
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }
 }
 

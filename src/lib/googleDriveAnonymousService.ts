@@ -8,25 +8,126 @@
  * with "Execute as: Me" and "Access: Anyone".
  */
 
+import type { GalleryItem } from '../types';
+
 export const TARGET_DRIVE_EMAIL = 'jekb66476@gmail.com';
 export const TARGET_FOLDER_NAME = 'Dokumentasi IRMAS Al-Ikhlas';
 export const SCRIPT_URL_STORAGE_KEY = 'irmas_gdrive_script_url';
 export const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBZJ98jJ8nb8CSu6yKrJ7W-ireTJueD_MrgfpXJvTYkidfpQ2S15N4G4qrowmhJmF4/exec';
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
- * SKRIP PENYIMPANAN GOOGLE DRIVE 100% TANPA LOGIN USER
- * DILENGKAPI SISTEM KEAMANAN KETAT (ANTI-MALWARE & INJEKSI)
+ * SKRIP PENYIMPANAN & SINKRONISASI GOOGLE DRIVE OTOMATIS
  * IRMAS Masjid Jamie Al-Ikhlas (jekb66476@gmail.com)
+ * DILENGKAPI:
+ * 1. Otomatis menampilkan galeri foto ke seluruh HP/device
+ * 2. Upload foto tanpa login user
+ * 3. Anti-Malware & proteksi ukuran
  */
 
 function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "ok",
-    message: "Google Drive Upload Service IRMAS Al-Ikhlas Aktif & Terlindungi (Anti-Malware, Folder per Kegiatan)",
-    targetEmail: "jekb66476@gmail.com",
-    folder: "Dokumentasi IRMAS Al-Ikhlas",
-    security: "Enforced"
-  })).setMimeType(ContentService.MimeType.JSON);
+  try {
+    var rootFolderName = "Dokumentasi IRMAS Al-Ikhlas";
+    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
+    var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootFolderName);
+    
+    var items = [];
+    
+    // 1. Ambil foto langsung di folder utama
+    var files = rootFolder.getFiles();
+    while (files.hasNext()) {
+      var file = files.next();
+      var mime = (file.getMimeType() || "").toLowerCase();
+      if (mime.indexOf("image/") === 0 || mime.indexOf("image") > -1) {
+        var fId = file.getId();
+        var fTime = file.getDateCreated().getTime();
+        items.push({
+          id: "gdrive-file-" + fId,
+          fileId: fId,
+          fileName: file.getName(),
+          title: file.getName().replace(/\\.[^/.]+$/, ""),
+          category: "kegiatan",
+          date: Utilities.formatDate(file.getDateCreated(), "GMT+7", "dd MMMM yyyy"),
+          location: "Masjid Jamie Al-Ikhlas",
+          directUrl: "https://lh3.googleusercontent.com/d/" + fId,
+          imageUrl: "https://drive.google.com/thumbnail?id=" + fId + "&sz=w1000",
+          images: ["https://drive.google.com/thumbnail?id=" + fId + "&sz=w1000"],
+          driveUrl: file.getUrl(),
+          createdAt: fTime,
+          folderName: rootFolderName,
+          description: "Dokumentasi foto tersimpan di Google Drive jekb66476@gmail.com",
+          participants: 50,
+          highlight: false
+        });
+      }
+    }
+    
+    // 2. Ambil foto terorganisir per sub-folder kegiatan
+    var subfolders = rootFolder.getFolders();
+    while (subfolders.hasNext()) {
+      var subfolder = subfolders.next();
+      var subName = subfolder.getName();
+      var cleanTitle = subName.replace(/^\\[IRMAS\\]\\s*/i, "");
+      var subFiles = subfolder.getFiles();
+      var folderImages = [];
+      var earliestTime = 0;
+      
+      while (subFiles.hasNext()) {
+        var sFile = subFiles.next();
+        var sMime = (sFile.getMimeType() || "").toLowerCase();
+        if (sMime.indexOf("image/") === 0 || sMime.indexOf("image") > -1) {
+          var sfId = sFile.getId();
+          var time = sFile.getDateCreated().getTime();
+          if (!earliestTime || time < earliestTime) earliestTime = time;
+          folderImages.push({
+            fileId: sfId,
+            fileName: sFile.getName(),
+            directUrl: "https://lh3.googleusercontent.com/d/" + sfId,
+            thumbUrl: "https://drive.google.com/thumbnail?id=" + sfId + "&sz=w1000",
+            driveUrl: sFile.getUrl(),
+            createdAt: time
+          });
+        }
+      }
+      
+      if (folderImages.length > 0) {
+        folderImages.sort(function(a, b) { return a.createdAt - b.createdAt; });
+        var first = folderImages[0];
+        items.push({
+          id: "gdrive-folder-" + subfolder.getId(),
+          fileId: first.fileId,
+          title: cleanTitle || subName,
+          category: "kegiatan",
+          date: Utilities.formatDate(new Date(first.createdAt), "GMT+7", "dd MMMM yyyy"),
+          location: "Masjid Jamie Al-Ikhlas",
+          imageUrl: first.thumbUrl || first.directUrl,
+          images: folderImages.map(function(f) { return f.thumbUrl || f.directUrl; }),
+          description: "Dokumentasi " + (cleanTitle || subName) + " di Google Drive (" + folderImages.length + " foto)",
+          participants: folderImages.length * 15,
+          highlight: false,
+          createdAt: first.createdAt,
+          folderUrl: subfolder.getUrl(),
+          folderName: subName
+        });
+      }
+    }
+    
+    // Urutkan dokumentasi terbaru di urutan paling atas
+    items.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "ok",
+      count: items.length,
+      items: items,
+      targetEmail: "jekb66476@gmail.com",
+      folder: rootFolderName,
+      message: "Berhasil mengambil " + items.length + " data dokumentasi Google Drive"
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.message || "Gagal membaca berkas Google Drive"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function doPost(e) {
@@ -343,3 +444,148 @@ export async function testDriveScriptConnection(scriptUrl: string): Promise<{
     };
   }
 }
+
+/**
+ * Extracts Google Drive fileId from various formats:
+ * - https://lh3.googleusercontent.com/d/FILE_ID
+ * - https://drive.google.com/file/d/FILE_ID/view
+ * - https://drive.google.com/thumbnail?id=FILE_ID
+ * - https://drive.google.com/uc?export=view&id=FILE_ID
+ */
+export function extractDriveFileId(url: string | undefined): string | null {
+  if (!url) return null;
+  const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (lh3Match && lh3Match[1]) return lh3Match[1];
+
+  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|thumbnail\?id=|uc\?(?:.*&)?id=)([a-zA-Z0-9_-]+)/);
+  if (driveMatch && driveMatch[1]) return driveMatch[1];
+
+  return null;
+}
+
+/**
+ * Returns a robust, cross-browser embeddable URL for Google Drive photos.
+ * The Google Drive thumbnail CDN endpoint (`drive.google.com/thumbnail?id=...&sz=w1000`)
+ * has the highest reliability across iOS Safari, Android Chrome, and desktop browsers.
+ */
+export function getCrossBrowserDriveImageUrl(url: string | undefined, size: number = 1000): string {
+  if (!url) return '';
+  const fileId = extractDriveFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+  }
+  return url;
+}
+
+/**
+ * Provides an array of fallback URLs for a given Google Drive image, in priority order:
+ * 1. Thumbnail CDN (fast, anti-cookie-block, optimized)
+ * 2. lh3 direct with anti-cache query
+ * 3. uc?export=view direct stream
+ */
+export function getDriveImageFallbackUrls(url: string | undefined): string[] {
+  if (!url) return [];
+  const fileId = extractDriveFileId(url);
+  if (!fileId) return [url];
+
+  return [
+    `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`,
+    `https://lh3.googleusercontent.com/d/${fileId}?t=${Date.now()}`,
+    `https://drive.google.com/uc?export=view&id=${fileId}`
+  ];
+}
+
+/**
+ * Fetches documentation items from the Google Apps Script Web App.
+ * Runs automatically on page load & via periodic polling interval.
+ * Supports multiple response formats (items, data, files, raw array).
+ */
+export async function fetchGoogleDriveGallery(scriptUrl?: string): Promise<GalleryItem[]> {
+  const targetUrl = (scriptUrl && scriptUrl.trim().startsWith('http')) 
+    ? scriptUrl.trim() 
+    : getSavedScriptUrl();
+
+  if (!targetUrl || !targetUrl.startsWith('http')) {
+    return [];
+  }
+
+  // Anti-cache query ensures fresh data every fetch without stale browser proxy caching
+  const antiCacheUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + `action=list&_t=${Date.now()}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds timeout
+
+  try {
+    const res = await fetch(antiCacheUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, text/plain, */*'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const text = await res.text();
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return [];
+    }
+
+    const rawItems: any[] = Array.isArray(data)
+      ? data
+      : (Array.isArray(data?.items) 
+          ? data.items 
+          : (Array.isArray(data?.data) 
+              ? data.data 
+              : (Array.isArray(data?.files) ? data.files : [])));
+
+    if (!rawItems || rawItems.length === 0) {
+      return [];
+    }
+
+    const formatted: GalleryItem[] = rawItems.map((item, idx) => {
+      const fileId = item.fileId || item.id || '';
+      const rawUrl = item.imageUrl || item.directUrl || (fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : '');
+      const reliableThumb = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000` : rawUrl;
+      const title = item.title || item.activityTitle || item.fileName || `Dokumentasi Kegiatan ${idx + 1}`;
+      
+      const imagesList: string[] = (Array.isArray(item.images) && item.images.length > 0)
+        ? item.images.map((img: string) => {
+            const fid = extractDriveFileId(img);
+            return fid ? `https://drive.google.com/thumbnail?id=${fid}&sz=w1000` : img;
+          })
+        : [reliableThumb];
+
+      return {
+        id: item.id || `gdrive-${fileId || idx}-${Date.now()}`,
+        title: title,
+        category: (item.category as any) || 'kegiatan',
+        date: item.date || 'Terbaru',
+        location: item.location || "Masjid Jami'e Al-Ikhlas",
+        imageUrl: reliableThumb,
+        images: imagesList,
+        description: item.description || `Dokumentasi kegiatan "${title}" tersimpan di Google Drive.`,
+        participants: item.participants || 50,
+        highlight: !!item.highlight,
+        isUserUploaded: true,
+        storageType: 'gdrive',
+        createdAt: item.createdAt || item.dateCreated || (Date.now() - idx * 1000),
+        driveFileId: fileId,
+        driveUrl: item.driveUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : undefined),
+        driveFolderUrl: item.folderUrl
+      };
+    });
+
+    return formatted;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    return [];
+  }
+}
+

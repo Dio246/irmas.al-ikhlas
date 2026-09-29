@@ -15,6 +15,9 @@ export interface GalleryItem {
   driveFolderUrl?: string;
   driveFileId?: string;
   driveFileIds?: string[];
+  isUserUploaded?: boolean;
+  storageType?: 'gdrive' | 'local' | 'firestore';
+  createdAt?: number;
 }
 
 export interface Pengurus {

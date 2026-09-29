@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Image as ImageIcon, 
   Search, 
@@ -33,7 +33,8 @@ import {
   HeartHandshake,
   Compass,
   GraduationCap,
-  Moon
+  Moon,
+  ImageOff
 } from 'lucide-react';
 import { galleryData as initialGalleryData } from '../data/irmasData';
 import { GalleryItem, GalleryCategory } from '../types';
@@ -46,21 +47,6 @@ import {
   MAX_BATCH_FILES
 } from '../lib/security';
 
-/**
- * Optimizes image URLs for fast, lag-free mobile rendering and smooth scrolling.
- * If the image is hosted on Google Drive, it requests an optimized 800px web thumbnail CDN format.
- */
-function getOptimizedThumbUrl(url: string | undefined): string {
-  if (!url) return '';
-  if (url.includes('drive.google.com/thumbnail?id=')) {
-    return url;
-  }
-  const match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
-  if (match && match[1]) {
-    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
-  }
-  return resolveAsset(url);
-}
 import {
   requestDriveAccessToken,
   getOrCreateIrmasFolder,
@@ -81,7 +67,11 @@ import {
   saveScriptUrl,
   uploadToGoogleDriveNoLogin,
   deleteFromGoogleDriveNoLogin,
-  testDriveScriptConnection
+  testDriveScriptConnection,
+  fetchGoogleDriveGallery,
+  extractDriveFileId,
+  getCrossBrowserDriveImageUrl,
+  getDriveImageFallbackUrls
 } from '../lib/googleDriveAnonymousService';
 import {
   loadCustomGalleryItems,
@@ -99,6 +89,101 @@ import {
 import {
   deletePhotoFromGoogleDrive
 } from '../lib/googleDriveService';
+
+/**
+ * Optimizes image URLs for fast, lag-free mobile rendering and smooth scrolling.
+ * If the image is hosted on Google Drive, it requests an optimized 800px web thumbnail CDN format.
+ */
+function getOptimizedThumbUrl(url: string | undefined): string {
+  if (!url) return '';
+  if (url.includes('drive.google.com/thumbnail?id=')) {
+    return url;
+  }
+  const match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  }
+  return resolveAsset(url);
+}
+
+/**
+ * Resilient photo component with automatic anti-cache retry,
+ * multiple Google Drive CDN fallback endpoints, and loading feedback.
+ */
+const ResilientCardImage: React.FC<{
+  src: string;
+  alt: string;
+}> = ({ src, alt }) => {
+  const fileId = extractDriveFileId(src);
+  const fallbackUrls = useMemo(() => getDriveImageFallbackUrls(src), [src]);
+  const [urlIndex, setUrlIndex] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setUrlIndex(0);
+    setHasError(false);
+    setIsLoaded(false);
+  }, [src]);
+
+  const activeSrc = fallbackUrls[urlIndex] || src;
+
+  const handleError = () => {
+    if (urlIndex + 1 < fallbackUrls.length) {
+      setUrlIndex(prev => prev + 1);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (hasError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 p-4 text-center select-none">
+        <ImageOff className="w-7 h-7 text-emerald-500/70 mb-2" />
+        <p className="text-xs font-semibold text-slate-200">Foto Tersimpan di Google Drive</p>
+        <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
+          Foto sedang diproses oleh Google Drive
+        </p>
+        {fileId && (
+          <a
+            href={`https://drive.google.com/file/d/${fileId}/view`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg transition-colors shadow-xs"
+          >
+            <ExternalLink className="w-3 h-3" />
+            <span>Buka Foto</span>
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-slate-950">
+      {!isLoaded && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 z-5 text-emerald-400">
+          <Loader2 className="w-6 h-6 animate-spin mb-1 text-emerald-500" />
+          <span className="text-[10px] text-slate-400 font-medium">Memuat dokumentasi...</span>
+        </div>
+      )}
+      <img
+        key={activeSrc}
+        src={activeSrc}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onLoad={() => setIsLoaded(true)}
+        onError={handleError}
+        className={`w-full h-full object-cover transition-opacity duration-300 md:group-hover:scale-105 ${
+          isLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+    </div>
+  );
+};
 
 interface GallerySectionProps {
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
@@ -193,14 +278,10 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
         onTouchEnd={handleTouchEnd}
         onClick={() => onSelectImage(item, activeIdx)}
       >
-        <img
+        <ResilientCardImage
           key={activeIdx}
-          src={getOptimizedThumbUrl(imagesList[activeIdx])}
+          src={imagesList[activeIdx]}
           alt={`${item.title} - Foto ${activeIdx + 1}`}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:scale-105"
-          referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-60 md:group-hover:opacity-80 transition-opacity pointer-events-none" />
 
@@ -457,57 +538,91 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const syncTimestampsRef = useRef<number[]>([]);
 
-  // Load items from local storage AND Firestore in real-time
-  useEffect(() => {
-    let isMounted = true;
+  // Real-time Loading & Auto-Refresh State
+  const [isLoadingGallery, setIsLoadingGallery] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastSyncText, setLastSyncText] = useState<string>('Tersinkronisasi');
+  const isMountedRef = useRef(true);
 
-    // 1. Load local custom items immediately so user never loses their uploaded items
-    loadCustomGalleryItems().then((localItems) => {
-      if (!isMounted) return;
-      if (localItems && localItems.length > 0) {
+  // Core loader: Fetches from Google Apps Script (Drive), Cloud Firestore, and Local Storage
+  const loadAllGalleryData = async (isSilent: boolean = false) => {
+    if (!isSilent) setIsRefreshing(true);
+    try {
+      // 1. Fetch from Google Apps Script (Google Drive jekb66476@gmail.com)
+      const gDrivePromise = fetchGoogleDriveGallery(scriptUrl).catch(() => []);
+      
+      // 2. Fetch from Cloud Firestore
+      const firestorePromise = getGalleryItemsFromFirestore().catch(() => []);
+      
+      // 3. Fetch from local device storage
+      const localPromise = loadCustomGalleryItems().catch(() => []);
+
+      const [gDriveItems, remoteItems, localItems] = await Promise.all([
+        gDrivePromise,
+        firestorePromise,
+        localPromise
+      ]);
+
+      if (isMountedRef.current) {
         setItems(prev => {
           const map = new Map<string, GalleryItem>();
-          prev.forEach(item => map.set(item.id, item));
-          localItems.forEach(item => map.set(item.id, item));
+          // Base static items
+          initialGalleryData.forEach(item => map.set(item.id, item));
+          // Local items
+          if (localItems && localItems.length > 0) {
+            localItems.forEach(item => map.set(item.id, item));
+          }
+          // Cloud Firestore items
+          if (remoteItems && remoteItems.length > 0) {
+            remoteItems.forEach(item => map.set(item.id, item));
+          }
+          // Google Drive items from Google Apps Script
+          if (gDriveItems && gDriveItems.length > 0) {
+            gDriveItems.forEach(item => map.set(item.id, item));
+          }
           return Array.from(map.values());
         });
-        // Auto-push any local items that haven't been saved to Firestore yet so other devices get them!
-        syncLocalItemsToFirestore(localItems).catch((syncErr) => {
-          console.warn('Auto-sync lokal ke Firestore gagal:', syncErr);
-        });
+
+        // Auto-push any local items that haven't been saved to Firestore yet
+        if (localItems && localItems.length > 0) {
+          syncLocalItemsToFirestore(localItems).catch(() => {});
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        setLastSyncText(`Tersinkronisasi otomatis (${timeStr})`);
       }
-    }).catch((err) => {
-      console.warn('Gagal memuat galeri lokal:', err);
-    });
+    } catch (err) {
+      console.warn('Gagal load galeri otomatis:', err);
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingGallery(false);
+        if (!isSilent) setIsRefreshing(false);
+      }
+    }
+  };
 
-    // 2. Initial fetch from Firestore to ensure immediate population across all devices
-    getGalleryItemsFromFirestore().then((remoteItems) => {
-      if (!isMounted || !remoteItems || remoteItems.length === 0) return;
-      setItems(prev => {
-        const map = new Map<string, GalleryItem>();
-        initialGalleryData.forEach(item => map.set(item.id, item));
-        prev.forEach(item => {
-          if (!map.has(item.id)) map.set(item.id, item);
-        });
-        remoteItems.forEach(item => map.set(item.id, item));
-        return Array.from(map.values());
-      });
-    }).catch((fsErr) => {
-      console.warn('Gagal initial fetch dari Firestore:', fsErr);
-    });
+  // 1. Otomatis Load Data saat Halaman Dibuka & 2. Auto-Refresh / Polling Interval (setiap 12 detik)
+  useEffect(() => {
+    isMountedRef.current = true;
 
-    // 3. Subscribe to real-time Firestore updates across ALL devices
+    // Load data otomatis segera saat komponen galeri selesai dimuat
+    loadAllGalleryData(false);
+
+    // Mekanisme auto-refresh polling berkala setiap 12 detik untuk mengecek foto terbaru di Google Drive
+    const pollInterval = setInterval(() => {
+      loadAllGalleryData(true);
+    }, 12000);
+
+    // Real-time listener dari Cloud Firestore
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       setItems(prev => {
         const map = new Map<string, GalleryItem>();
-        // Base static items
         initialGalleryData.forEach(item => map.set(item.id, item));
-        // Keep any custom items already created locally
         prev.forEach(item => {
           if (!map.has(item.id)) map.set(item.id, item);
         });
-        // Remote items from Firestore (available on ALL devices)
         if (remoteItems && remoteItems.length > 0) {
           remoteItems.forEach(item => map.set(item.id, item));
         }
@@ -516,10 +631,11 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     });
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      clearInterval(pollInterval);
       unsubscribe();
     };
-  }, []);
+  }, [scriptUrl]);
 
   // Check Drive session on mount
   useEffect(() => {
@@ -683,63 +799,39 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     }
   };
 
-  // Manual sync handler: Syncs local items to Firestore and pulls latest Firestore documents
-  // Batas maksimal: 5 kali dalam 1 menit (60 detik)
+  // Manual sync handler: Muat Ulang Galeri & Sinkronisasi penuh dengan Google Drive & Cloud
   const handleManualSync = async () => {
-    if (isSyncing) return;
+    if (isSyncing || isRefreshing) return;
 
     const now = Date.now();
-    // Filter timestamps within the last 60 seconds (1-minute rolling window)
     const recentSyncs = syncTimestampsRef.current.filter(t => now - t < 60000);
     syncTimestampsRef.current = recentSyncs;
 
-    if (recentSyncs.length >= 5) {
+    if (recentSyncs.length >= 8) {
       const oldestSync = recentSyncs[0];
       const waitSeconds = Math.max(1, Math.ceil((60000 - (now - oldestSync)) / 1000));
       setSyncToast({
         type: 'warning',
-        message: `Batas maksimal sinkronisasi adalah 5 kali dalam 1 menit. Silakan tunggu ${waitSeconds} detik lagi.`
+        message: `Batas penyegaran cepat tercapai. Silakan tunggu ${waitSeconds} detik lagi.`
       });
-      setTimeout(() => setSyncToast(null), 4000);
+      setTimeout(() => setSyncToast(null), 3500);
       return;
     }
 
-    // Catat timestamp sinkronisasi saat ini
     syncTimestampsRef.current.push(now);
-
     setIsSyncing(true);
     try {
-      // 1. If this device has any local items, sync them to Firestore
-      const localItems = await loadCustomGalleryItems();
-      if (localItems && localItems.length > 0) {
-        await syncLocalItemsToFirestore(localItems);
-      }
-
-      // 2. Fetch latest items from Cloud Firestore
-      const remoteItems = await getGalleryItemsFromFirestore();
-      setItems(prev => {
-        const map = new Map<string, GalleryItem>();
-        initialGalleryData.forEach(item => map.set(item.id, item));
-        prev.forEach(item => {
-          if (!map.has(item.id)) map.set(item.id, item);
-        });
-        if (remoteItems && remoteItems.length > 0) {
-          remoteItems.forEach(item => map.set(item.id, item));
-        }
-        return Array.from(map.values());
-      });
-
-      const remainingQuota = 5 - syncTimestampsRef.current.length;
+      await loadAllGalleryData(false);
       setSyncToast({
         type: 'success',
-        message: `Sinkronisasi galeri cloud berhasil! Data terupdate untuk semua perangkat. (Tersisa ${remainingQuota}x kesempatan sinkronisasi menit ini)`
+        message: 'Galeri berhasil dimuat ulang dan tersinkronisasi dengan Google Drive & Cloud!'
       });
       setTimeout(() => setSyncToast(null), 3500);
     } catch (err) {
       console.warn('Manual sync failed:', err);
       setSyncToast({
         type: 'warning',
-        message: 'Gagal sinkronisasi galeri. Periksa jaringan Anda.'
+        message: 'Gagal memuat ulang galeri. Periksa koneksi internet Anda.'
       });
       setTimeout(() => setSyncToast(null), 3500);
     } finally {
@@ -987,17 +1079,18 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
                 </button>
               ) : null}
 
-              {/* Sync Button for Cross-Device Updates */}
+              {/* Muat Ulang Galeri (Auto-sync & Manual Reload) */}
               <button
                 type="button"
                 id="btn-sync-gallery"
                 onClick={handleManualSync}
-                disabled={isSyncing}
-                title="Sinkronkan foto antar perangkat (Cloud Firestore)"
-                className="inline-flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200/90 hover:border-emerald-300 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-h-[42px] disabled:opacity-50"
+                disabled={isSyncing || isRefreshing}
+                title="Muat ulang dan sinkronkan foto dokumentasi terbaru dari Google Drive & Cloud"
+                className="inline-flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 hover:border-emerald-300 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-h-[42px] disabled:opacity-50 active:scale-95"
               >
-                <RefreshCw className={`w-4 h-4 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
+                <RefreshCw className={`w-4 h-4 text-emerald-600 ${isSyncing || isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isSyncing || isRefreshing ? 'Memuat...' : 'Muat Ulang Galeri'}</span>
+                <span className="sm:hidden">{isSyncing || isRefreshing ? 'Memuat...' : 'Segarkan'}</span>
               </button>
 
               {/* Add Documentation Button */}
@@ -1012,6 +1105,14 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
             </div>
           </div>
 
+          {/* Real-time Status Bar */}
+          <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 pt-0.5">
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className={`inline-block w-2 h-2 rounded-full ${isRefreshing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
+              <span>{isRefreshing ? 'Sedang mengecek pembaruan...' : lastSyncText}</span>
+            </span>
+            <span className="font-semibold text-slate-600">{filteredItems.length} Kegiatan Terdata</span>
+          </div>
         </div>
 
         {/* Sync Toast Feedback */}
@@ -1055,6 +1156,20 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           </div>
         )}
 
+        {/* Loading Indicator saat Data Pertama Kali Dimuat */}
+        {isLoadingGallery && (
+          <div className="py-14 mb-8 flex flex-col items-center justify-center text-center bg-slate-50/70 rounded-2xl border border-dashed border-emerald-200 animate-in fade-in">
+            <div className="relative w-12 h-12 flex items-center justify-center mb-3">
+              <div className="absolute inset-0 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin" />
+              <ImageIcon className="w-5 h-5 text-emerald-600 animate-pulse" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">Memuat dokumentasi...</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm px-2">
+              Mengambil foto dan kegiatan secara otomatis dari Google Drive & database online
+            </p>
+          </div>
+        )}
+
         {/* Gallery Grid with Interactive Multi-Photo Scrollable Cards */}
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1076,13 +1191,27 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
             <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-700">Tidak ada dokumentasi ditemukan</h3>
-            <p className="text-xs text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau pilih kategori lainnya.</p>
-            <button
-              onClick={() => { setActiveCategory('semua'); setSearchQuery(''); }}
-              className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 cursor-pointer"
-            >
-              Reset Filter
-            </button>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              Foto belum muncul atau belum sesuai dengan filter pencarian. Klik tombol di bawah untuk menyegarkan dari Google Drive.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncing || isRefreshing}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing || isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Muat Ulang Galeri</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveCategory('semua'); setSearchQuery(''); }}
+                className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Reset Filter
+              </button>
+            </div>
           </div>
         )}
 

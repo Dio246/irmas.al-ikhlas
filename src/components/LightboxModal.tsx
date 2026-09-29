@@ -1,26 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2 } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2, ImageOff, ExternalLink } from 'lucide-react';
 import { GalleryItem } from '../types';
 import { resolveAsset } from '../lib/assetHelper';
 import { downloadAlbumPhotos } from '../lib/downloadHelper';
-
-interface LightboxModalProps {
-  item: GalleryItem | null;
-  initialIndex?: number;
-  onClose: () => void;
-}
+import { extractDriveFileId, getDriveImageFallbackUrls } from '../lib/googleDriveAnonymousService';
 
 function getOptimizedThumb(url: string | undefined): string {
   if (!url) return '';
   if (url.includes('drive.google.com/thumbnail?id=')) {
     return url;
   }
-  const match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
-  if (match && match[1]) {
-    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
+  const fileId = extractDriveFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
   }
   return resolveAsset(url);
+}
+
+function getOptimizedFullPhoto(url: string | undefined): string {
+  if (!url) return '';
+  if (url.includes('drive.google.com/thumbnail?id=')) {
+    return url;
+  }
+  const fileId = extractDriveFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
+  }
+  return resolveAsset(url);
+}
+
+interface LightboxModalProps {
+  item: GalleryItem | null;
+  initialIndex?: number;
+  onClose: () => void;
 }
 
 export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex = 0, onClose }) => {
@@ -119,10 +132,18 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
           <div className="relative flex-1 flex items-center justify-center p-2 overflow-hidden">
             <img
               key={currentImage}
-              src={resolveAsset(currentImage)}
+              src={getOptimizedFullPhoto(currentImage)}
               alt={`${item.title} - Foto ${activePhotoIdx + 1}`}
               className="w-full h-full max-h-[62vh] object-contain transition-all duration-300"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                // If full photo fails, fallback to direct thumbnail or resolveAsset
+                const target = e.currentTarget;
+                if (!target.dataset.triedFallback) {
+                  target.dataset.triedFallback = 'true';
+                  target.src = resolveAsset(currentImage);
+                }
+              }}
             />
 
             {/* Navigation Arrows (if multiple photos) */}
