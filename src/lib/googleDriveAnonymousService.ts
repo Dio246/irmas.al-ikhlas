@@ -209,32 +209,69 @@ export async function uploadToGoogleDriveNoLogin(
     activityTitle: cleanTitle
   };
 
-  const response = await fetch(targetUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8'
-    },
-    body: JSON.stringify(payload)
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds timeout per photo upload
 
-  if (!response.ok) {
-    throw new Error(`Koneksi Google Drive gagal (Status HTTP: ${response.status})`);
+  try {
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Koneksi Google Drive gagal (Status HTTP: ${response.status})`);
+    }
+
+    const textResponse = await response.text();
+    let result: any;
+    try {
+      result = JSON.parse(textResponse);
+    } catch {
+      // If Apps Script returns raw HTML redirect or text
+      const idMatch = textResponse.match(/"fileId"\s*:\s*"([a-zA-Z0-9_-]+)"/);
+      if (idMatch && idMatch[1]) {
+        result = {
+          status: 'success',
+          fileId: idMatch[1],
+          directUrl: `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1200`,
+          driveUrl: `https://drive.google.com/file/d/${idMatch[1]}/view`
+        };
+      } else {
+        throw new Error('Respon dari Google Drive tidak valid.');
+      }
+    }
+
+    if (result.status === 'error' || (!result.directUrl && !result.fileId)) {
+      throw new Error(result.message || 'Gagal menyimpan foto ke Google Drive.');
+    }
+
+    const fileId = result.fileId || '';
+    // Most reliable CDN URL for public Drive files: Google Drive thumbnail endpoint + lh3 fallback
+    const reliableDirectUrl = fileId 
+      ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`
+      : result.directUrl;
+
+    return {
+      fileId: fileId,
+      fileName: result.fileName || fileName,
+      directUrl: reliableDirectUrl,
+      driveUrl: result.driveUrl || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : ''),
+      folderUrl: result.folderUrl,
+      folderName: result.folderName
+    };
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Unggahan ke Google Drive memakan waktu terlalu lama (timeout).');
+    }
+    throw err;
   }
-
-  const result = await response.json();
-
-  if (result.status === 'error' || !result.directUrl) {
-    throw new Error(result.message || 'Gagal menyimpan foto ke Google Drive.');
-  }
-
-  return {
-    fileId: result.fileId,
-    fileName: result.fileName || fileName,
-    directUrl: result.directUrl,
-    driveUrl: result.driveUrl || `https://drive.google.com/file/d/${result.fileId}/view`,
-    folderUrl: result.folderUrl,
-    folderName: result.folderName
-  };
 }
 
 /**

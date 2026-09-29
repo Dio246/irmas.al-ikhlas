@@ -52,8 +52,12 @@ import {
  */
 function getOptimizedThumbUrl(url: string | undefined): string {
   if (!url) return '';
-  if (url.includes('lh3.googleusercontent.com/d/') && !url.includes('=')) {
-    return `${url}=w800`;
+  if (url.includes('drive.google.com/thumbnail?id=')) {
+    return url;
+  }
+  const match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   }
   return resolveAsset(url);
 }
@@ -448,14 +452,36 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   const [addSuccessToast, setAddSuccessToast] = useState(false);
   const [lastSavedFolderUrl, setLastSavedFolderUrl] = useState<string | null>(null);
 
-  // Load items from Firestore in real-time. Firestore is the Single Source of Truth!
+  // Load items from local storage AND Firestore in real-time
   useEffect(() => {
-    // 1. Subscribe to real-time Firestore updates across ALL devices
+    let isMounted = true;
+
+    // 1. Load local custom items immediately so user never loses their uploaded items
+    loadCustomGalleryItems().then((localItems) => {
+      if (!isMounted) return;
+      if (localItems && localItems.length > 0) {
+        setItems(prev => {
+          const map = new Map<string, GalleryItem>();
+          prev.forEach(item => map.set(item.id, item));
+          localItems.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
+    }).catch((err) => {
+      console.warn('Gagal memuat galeri lokal:', err);
+    });
+
+    // 2. Subscribe to real-time Firestore updates across ALL devices
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
-      setItems(() => {
+      if (!isMounted) return;
+      setItems(prev => {
         const map = new Map<string, GalleryItem>();
         // Base static items
         initialGalleryData.forEach(item => map.set(item.id, item));
+        // Keep any custom items already created locally
+        prev.forEach(item => {
+          if (!map.has(item.id)) map.set(item.id, item);
+        });
         // Remote items from Firestore (available on ALL devices)
         if (remoteItems && remoteItems.length > 0) {
           remoteItems.forEach(item => map.set(item.id, item));
@@ -465,6 +491,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     });
 
     return () => {
+      isMounted = false;
       unsubscribe();
     };
   }, []);
@@ -608,24 +635,25 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     setIsValidatingFiles(false);
   };
 
-  // Persist gallery items (saved to Firebase Cloud Firestore for all devices + local fallback)
+  // Persist gallery items (saved to local state, IndexedDB, and Cloud Firestore)
   const persistNewItem = async (newItem: GalleryItem) => {
+    // 1. Immediately update UI state so user sees their new activity right away
     setItems(prev => {
       if (prev.some(p => p.id === newItem.id)) return prev;
       return [...prev, newItem];
     });
-    // Save to Firestore so every device/user sees it instantly in real-time
-    try {
-      await saveGalleryItemToFirestore(newItem);
-    } catch (fsErr) {
-      console.warn('Gagal simpan ke Firebase Firestore:', fsErr);
-    }
-    // Also save to IndexedDB as local cache
+
+    // 2. Fast local persistence in IndexedDB / localStorage
     try {
       await saveCustomGalleryItem(newItem);
     } catch (idbErr) {
       console.warn('Gagal simpan ke IndexedDB:', idbErr);
     }
+
+    // 3. Save to Firebase Cloud Firestore for multi-device sync in background
+    saveGalleryItemToFirestore(newItem).catch(fsErr => {
+      console.warn('Gagal simpan ke Firebase Firestore:', fsErr);
+    });
   };
 
   // Delete a documentation item from Google Drive, Firestore, and local storage

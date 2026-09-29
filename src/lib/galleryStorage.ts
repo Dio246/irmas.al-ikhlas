@@ -19,17 +19,36 @@ function openDb(): Promise<IDBDatabase> {
       return;
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const timeout = setTimeout(() => {
+      reject(new Error('IndexedDB open timeout'));
+    }, 2500);
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-    };
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+
+      request.onsuccess = () => {
+        clearTimeout(timeout);
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        clearTimeout(timeout);
+        reject(request.error);
+      };
+      request.onblocked = () => {
+        clearTimeout(timeout);
+        reject(new Error('IndexedDB blocked'));
+      };
+    } catch (err) {
+      clearTimeout(timeout);
+      reject(err);
+    }
   });
 }
 

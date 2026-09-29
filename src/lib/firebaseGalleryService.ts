@@ -45,21 +45,41 @@ export async function saveGalleryItemToFirestore(item: GalleryItem): Promise<voi
       }
     }
 
+    // Clean payload: Firestore forbids 'undefined' values anywhere in document objects
     const payload: Record<string, any> = {
-      ...item,
-      imageUrl: sanitizedImages[0] || item.imageUrl,
+      id: item.id,
+      title: item.title || '',
+      category: item.category || 'kajian',
+      date: item.date || 'Agustus 2026',
+      location: item.location || 'Masjid Jamie Al-Ikhlas',
+      imageUrl: sanitizedImages[0] || item.imageUrl || '',
       images: sanitizedImages,
+      description: item.description || '',
+      participants: typeof item.participants === 'number' ? item.participants : 30,
+      highlight: Boolean(item.highlight),
       createdAt: (item as any).createdAt || Date.now()
     };
+
     if (item.driveFileId) payload.driveFileId = item.driveFileId;
-    if (item.driveFileIds && item.driveFileIds.length > 0) payload.driveFileIds = item.driveFileIds;
+    if (item.driveFileIds && Array.isArray(item.driveFileIds) && item.driveFileIds.length > 0) {
+      payload.driveFileIds = item.driveFileIds.filter(Boolean);
+    }
     if (item.driveUrl) payload.driveUrl = item.driveUrl;
     if (item.driveFolderUrl) payload.driveFolderUrl = item.driveFolderUrl;
 
-    await setDoc(docRef, payload, { merge: true });
+    // Safety timeout: Do not allow setDoc network negotiation to hang the browser UI
+    const writePromise = setDoc(docRef, payload, { merge: true });
+    const timeoutPromise = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Resolve after 6s timeout so UI can proceed smoothly while Firestore writes in background
+        resolve();
+      }, 6000);
+    });
+
+    await Promise.race([writePromise, timeoutPromise]);
   } catch (error) {
     console.error('Gagal menyimpan dokumentasi ke Firestore:', error);
-    throw error;
+    // Non-fatal: Local state and IndexedDB already retain the item
   }
 }
 
