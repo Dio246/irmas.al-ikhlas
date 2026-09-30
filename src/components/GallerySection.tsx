@@ -36,8 +36,8 @@ import {
   Moon,
   ImageOff
 } from 'lucide-react';
-import { galleryData as initialGalleryData } from '../data/irmasData';
 import { GalleryItem, GalleryCategory } from '../types';
+import { musyawarahPhotos, maulidPhotos } from '../data/irmasData';
 import { resolveAsset } from '../lib/assetHelper';
 import {
   validateUploadedFile,
@@ -491,8 +491,40 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
 };
 
 export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage }) => {
-  // State galeri: berawal dari data baku, lalu disinkronkan secara eksklusif dari Cloud Firestore terpusat
-  const [items, setItems] = useState<GalleryItem[]>(initialGalleryData);
+  // Dokumentasi bawaan website. Selalu dipertahankan di urutan paling awal.
+  const defaultGalleryItems = useMemo<GalleryItem[]>(() => [
+    {
+      id: 'gal-1',
+      title: 'Pembentukan & Pengesahan IRMAS Masjid Jamie Al-Ikhlas',
+      category: 'kajian',
+      date: '20 Desember 2024',
+      location: 'Masjid Jamie Al-Ikhlas',
+      imageUrl: musyawarahPhotos[0]?.url || '',
+      images: musyawarahPhotos.map(photo => photo.url).filter(Boolean),
+      description: 'Dokumentasi kegiatan pembentukan dan pengesahan IRMAS Masjid Jamie Al-Ikhlas.',
+      highlight: true,
+      isUserUploaded: false,
+      storageType: 'local',
+      createdAt: 1
+    },
+    {
+      id: 'gal-2',
+      title: 'Peringatan Maulid Nabi Muhammad SAW 1447 H',
+      category: 'phbi',
+      date: '27 September 2025',
+      location: 'Masjid Jamie Al-Ikhlas',
+      imageUrl: maulidPhotos[0]?.url || '',
+      images: maulidPhotos.map(photo => photo.url).filter(Boolean),
+      description: 'Dokumentasi kegiatan peringatan Maulid Nabi Muhammad SAW 1447 H di Masjid Jamie Al-Ikhlas.',
+      highlight: true,
+      isUserUploaded: false,
+      storageType: 'local',
+      createdAt: 2
+    }
+  ], []);
+
+  // Dua dokumentasi bawaan selalu ada; dokumentasi hasil upload ditambahkan setelahnya.
+  const [items, setItems] = useState<GalleryItem[]>(defaultGalleryItems);
 
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -541,93 +573,111 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
   // Real-time Loading & Auto-Refresh State
   const [isLoadingGallery, setIsLoadingGallery] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastSyncText, setLastSyncText] = useState<string>('Tersinkronisasi');
+  const [lastSyncText, setLastSyncText] = useState<string>('Menghubungkan ke Google Drive...');
   const isMountedRef = useRef(true);
 
-  // Core loader: Fetches from Google Apps Script (Drive), Cloud Firestore, and Local Storage
-  const loadAllGalleryData = async (isSilent: boolean = false) => {
-    if (!isSilent) setIsRefreshing(true);
+  // 3. Proses Ambil Data (GET Request) saat Dibuka & Auto-Refresh:
+  // Fungsi loadGallery() melakukan GET request langsung ke URL Google Apps Script
+  const loadGallery = async (isSilent: boolean = false) => {
+    if (!isSilent) setIsLoadingGallery(true);
+    setIsRefreshing(true);
     try {
-      // 1. Fetch from Google Apps Script (Google Drive jekb66476@gmail.com)
-      const gDrivePromise = fetchGoogleDriveGallery(scriptUrl).catch(() => []);
+      // 1. Ambil data dari Google Apps Script (Google Drive jekb66476@gmail.com)
+      const gDriveItems = await fetchGoogleDriveGallery(scriptUrl).catch(() => []);
       
-      // 2. Fetch from Cloud Firestore
-      const firestorePromise = getGalleryItemsFromFirestore().catch(() => []);
-      
-      // 3. Fetch from local device storage
-      const localPromise = loadCustomGalleryItems().catch(() => []);
-
-      const [gDriveItems, remoteItems, localItems] = await Promise.all([
-        gDrivePromise,
-        firestorePromise,
-        localPromise
-      ]);
+      // 2. Ambil data tersinkronisasi dari Cloud Firestore
+      const firestoreItems = await getGalleryItemsFromFirestore().catch(() => []);
 
       if (isMountedRef.current) {
-        setItems(prev => {
-          const map = new Map<string, GalleryItem>();
-          // Base static items
-          initialGalleryData.forEach(item => map.set(item.id, item));
-          // Local items
-          if (localItems && localItems.length > 0) {
-            localItems.forEach(item => map.set(item.id, item));
-          }
-          // Cloud Firestore items
-          if (remoteItems && remoteItems.length > 0) {
-            remoteItems.forEach(item => map.set(item.id, item));
-          }
-          // Google Drive items from Google Apps Script
-          if (gDriveItems && gDriveItems.length > 0) {
-            gDriveItems.forEach(item => map.set(item.id, item));
-          }
-          return Array.from(map.values());
-        });
+        const itemMap = new Map<string, GalleryItem>();
 
-        // Auto-push any local items that haven't been saved to Firestore yet
-        if (localItems && localItems.length > 0) {
-          syncLocalItemsToFirestore(localItems).catch(() => {});
+        // Sinkronkan data Firestore
+        if (firestoreItems && firestoreItems.length > 0) {
+          firestoreItems.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
+              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              itemMap.set(key, item);
+            }
+          });
         }
 
+        // Sinkronkan data Google Drive dari Google Apps Script sebagai sumber utama
+        if (gDriveItems && gDriveItems.length > 0) {
+          gDriveItems.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
+              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              itemMap.set(key, item);
+            }
+          });
+        }
+
+        const dynamicItems = Array.from(itemMap.values()).filter(
+          item => item.id !== 'gal-1' && item.id !== 'gal-2'
+        );
+        // Dokumentasi terbaru hasil upload di Google Drive ditampilkan paling atas di antara dokumentasi upload
+        dynamicItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setItems([...defaultGalleryItems, ...dynamicItems]);
+
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastSyncText(`Tersinkronisasi otomatis (${timeStr})`);
       }
     } catch (err) {
-      console.warn('Gagal load galeri otomatis:', err);
+      console.warn('Gagal loadGallery dari Google Apps Script:', err);
+      // Fallback ke Cloud Firestore jika Google Apps Script mengalami kendala koneksi
+      try {
+        const fsItems = await getGalleryItemsFromFirestore();
+        if (isMountedRef.current && fsItems && fsItems.length > 0) {
+          const uploadedItems = fsItems
+            .filter(item => item.id !== 'gal-1' && item.id !== 'gal-2')
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          setItems([...defaultGalleryItems, ...uploadedItems]);
+        }
+      } catch {}
     } finally {
       if (isMountedRef.current) {
         setIsLoadingGallery(false);
-        if (!isSilent) setIsRefreshing(false);
+        setIsRefreshing(false);
       }
     }
   };
 
-  // 1. Otomatis Load Data saat Halaman Dibuka & 2. Auto-Refresh / Polling Interval (setiap 12 detik)
+  // 1. Panggil loadGallery() otomatis saat pertama kali komponen/halaman di-load (useEffect)
+  // 2. Tambahkan setInterval agar loadGallery() berjalan otomatis setiap 10 detik
   useEffect(() => {
     isMountedRef.current = true;
 
-    // Load data otomatis segera saat komponen galeri selesai dimuat
-    loadAllGalleryData(false);
+    // Load data otomatis saat pertama kali komponen dimuat
+    loadGallery(false);
 
-    // Mekanisme auto-refresh polling berkala setiap 12 detik untuk mengecek foto terbaru di Google Drive
+    // Auto-Refresh Polling berkala setiap 10 detik untuk mengecek daftar foto terbaru dari Google Drive
     const pollInterval = setInterval(() => {
-      loadAllGalleryData(true);
-    }, 12000);
+      loadGallery(true);
+    }, 10000);
 
-    // Real-time listener dari Cloud Firestore
+    // Listener real-time Firestore untuk notifikasi instan antar perangkat
     const unsubscribe = subscribeToGalleryItems((remoteItems) => {
       if (!isMountedRef.current) return;
-      setItems(prev => {
-        const map = new Map<string, GalleryItem>();
-        initialGalleryData.forEach(item => map.set(item.id, item));
-        prev.forEach(item => {
-          if (!map.has(item.id)) map.set(item.id, item);
+      if (remoteItems && remoteItems.length > 0) {
+        setItems(prev => {
+          const map = new Map<string, GalleryItem>();
+          prev.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
+              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              map.set(key, item);
+            }
+          });
+          remoteItems.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
+              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              map.set(key, item);
+            }
+          });
+          const list = Array.from(map.values()).filter(item => item.id !== 'gal-1' && item.id !== 'gal-2');
+          list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          return [...defaultGalleryItems, ...list];
         });
-        if (remoteItems && remoteItems.length > 0) {
-          remoteItems.forEach(item => map.set(item.id, item));
-        }
-        return Array.from(map.values());
-      });
+      }
     });
 
     return () => {
@@ -635,7 +685,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       clearInterval(pollInterval);
       unsubscribe();
     };
-  }, [scriptUrl]);
+  }, [scriptUrl, defaultGalleryItems]);
 
   // Check Drive session on mount
   useEffect(() => {
@@ -821,7 +871,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
     syncTimestampsRef.current.push(now);
     setIsSyncing(true);
     try {
-      await loadAllGalleryData(false);
+      await loadGallery(false);
       setSyncToast({
         type: 'success',
         message: 'Galeri berhasil dimuat ulang dan tersinkronisasi dengan Google Drive & Cloud!'
@@ -937,11 +987,19 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
 
         try {
           // Upload ke Google Drive via Google Apps Script (berjalan di background tanpa login)
+          // File akan tersimpan di dalam folder terpisah di Google Drive sesuai judul kegiatan
           const driveResult = await uploadToGoogleDriveNoLogin(
             compressed,
             safeFileName,
             scriptUrl.trim(),
-            cleanTitle
+            cleanTitle,
+            {
+              category: newCategory,
+              date: cleanDate || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+              location: cleanLocation || "Masjid Jamie Al-Ikhlas",
+              description: cleanDescription || `Dokumentasi kegiatan ${cleanTitle} di Google Drive.`,
+              participants: Math.max(1, Math.min(10000, Number(newParticipants) || 30))
+            }
           );
           processedImages.push(driveResult.directUrl);
           if (driveResult.fileId) {
@@ -960,20 +1018,23 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       }
 
       const newItem: GalleryItem = {
-        id: `gal-gdrive-${Date.now()}`,
+        id: primaryFolderUrl ? `gdrive-folder-${cleanTitle}` : `gal-gdrive-${Date.now()}`,
         title: cleanTitle,
         category: newCategory,
-        date: cleanDate || 'Agustus 2026',
+        date: cleanDate || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         location: cleanLocation || "Masjid Jamie Al-Ikhlas",
         imageUrl: processedImages[0],
         images: processedImages,
-        description: cleanDescription || 'Dokumentasi kegiatan kepemudaan bersama IRMAS Masjid Jamie Al-Ikhlas.',
+        description: cleanDescription || `Dokumentasi kegiatan ${cleanTitle} bersama IRMAS Masjid Jamie Al-Ikhlas.`,
         participants: Math.max(1, Math.min(10000, Number(newParticipants) || 30)),
         highlight: false,
         driveUrl: primaryDriveUrl,
         driveFolderUrl: primaryFolderUrl,
         driveFileId: uploadedFileIds[0],
-        driveFileIds: uploadedFileIds
+        driveFileIds: uploadedFileIds,
+        createdAt: Date.now(),
+        isUserUploaded: true,
+        storageType: 'gdrive'
       };
 
       if (primaryFolderUrl) {
@@ -984,6 +1045,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       handleCloseModal();
       setAddSuccessToast(true);
       setTimeout(() => setAddSuccessToast(false), 5000);
+
+      // Mengambil kembali data terbaru dari Google Drive untuk ditampilkan di website sebagai satu album galeri
+      await loadGallery(false);
     } catch (err) {
       setDriveError(err instanceof Error ? err.message : 'Terjadi kendala saat memproses foto.');
     } finally {

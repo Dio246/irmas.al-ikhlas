@@ -1,15 +1,14 @@
 /**
  * galleryStorage.ts
  * Manages local persistent gallery storage (IndexedDB with LocalStorage fallback)
- * Allows direct photo uploads WITHOUT requiring any Google login!
+ * Provides client-side image compression utilities.
  */
 
-import { GalleryItem } from '../types';
+import type { GalleryItem } from '../types';
 
 const DB_NAME = 'irmas_gallery_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'custom_items';
-const WEBHOOK_STORAGE_KEY = 'irmas_gdrive_webhook_url';
 
 // Open or create IndexedDB
 function openDb(): Promise<IDBDatabase> {
@@ -53,7 +52,7 @@ function openDb(): Promise<IDBDatabase> {
 }
 
 /**
- * Loads all custom uploaded gallery items from IndexedDB or LocalStorage
+ * Loads custom uploaded gallery items from IndexedDB or LocalStorage
  */
 export async function loadCustomGalleryItems(): Promise<GalleryItem[]> {
   try {
@@ -66,10 +65,8 @@ export async function loadCustomGalleryItems(): Promise<GalleryItem[]> {
       req.onsuccess = () => {
         const results = req.result as GalleryItem[];
         if (results && results.length > 0) {
-          // Keep chronological order (first uploaded to last uploaded, placed at the bottom)
           resolve(results);
         } else {
-          // Fallback to localStorage check
           resolve(loadFromLocalStorage());
         }
       };
@@ -97,7 +94,7 @@ function loadFromLocalStorage(): GalleryItem[] {
 }
 
 /**
- * Saves a new custom gallery item to IndexedDB (and syncs to localStorage metadata)
+ * Saves a custom gallery item to IndexedDB (with localStorage metadata fallback)
  */
 export async function saveCustomGalleryItem(item: GalleryItem): Promise<void> {
   try {
@@ -110,11 +107,9 @@ export async function saveCustomGalleryItem(item: GalleryItem): Promise<void> {
       req.onerror = () => reject(req.error);
     });
   } catch {
-    // Fallback to localStorage
     try {
       const current = loadFromLocalStorage();
       const updated = [...current.filter((it) => it.id !== item.id), item];
-      // Keep only metadata in localStorage if string is too large
       localStorage.setItem('irmas_custom_gallery_items', JSON.stringify(updated.slice(-20)));
     } catch {
       // ignore
@@ -147,10 +142,8 @@ export async function deleteCustomGalleryItem(itemId: string): Promise<void> {
 
 /**
  * Compresses an image file client-side to optimal web dimensions and quality.
- * Lightweight, fast, robust on mobile devices (handles camera raw, HEIC, large orientation metadata).
  */
 export async function compressImageFile(file: File, maxWidth = 1000, quality = 0.75): Promise<string> {
-  // Method 1: Modern high-performance createImageBitmap (built into modern Android & iOS browsers, handles huge photos smoothly without memory spikes)
   if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
     try {
       const bitmap = await createImageBitmap(file);
@@ -178,7 +171,6 @@ export async function compressImageFile(file: File, maxWidth = 1000, quality = 0
     }
   }
 
-  // Method 2: Blob Object URL (more reliable on mobile devices than full base64 FileReader memory dump)
   try {
     const objectUrl = URL.createObjectURL(file);
     const result = await new Promise<string>((resolve, reject) => {
@@ -223,7 +215,6 @@ export async function compressImageFile(file: File, maxWidth = 1000, quality = 0
     console.warn('Blob URL fallback ke FileReader:', objectUrlErr);
   }
 
-  // Method 3: Standard FileReader fallback
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -291,50 +282,4 @@ export function compressToCompactDataUrl(dataUrl: string, maxWidth = 450, qualit
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
   });
-}
-
-/**
- * Optional Google Apps Script Webhook sync
- * If a webhook URL for jekb66476@gmail.com is provided, this forwards the photo
- * to jekb66476@gmail.com's Google Drive without any login required!
- */
-export function getSavedWebhookUrl(): string {
-  try {
-    return localStorage.getItem(WEBHOOK_STORAGE_KEY) || '';
-  } catch {
-    return '';
-  }
-}
-
-export function saveWebhookUrl(url: string): void {
-  try {
-    localStorage.setItem(WEBHOOK_STORAGE_KEY, url.trim());
-  } catch {
-    // ignore
-  }
-}
-
-export async function uploadToDriveWebhook(
-  fileDataUrl: string,
-  fileName: string,
-  webhookUrl: string
-): Promise<string | null> {
-  if (!webhookUrl) return null;
-  try {
-    const base64Content = fileDataUrl.split(',')[1] || fileDataUrl;
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        fileData: base64Content,
-        fileName: fileName,
-        folderName: 'Dokumentasi IRMAS Al-Ikhlas',
-      }),
-    });
-    const result = await response.json();
-    return result.directUrl || result.fileUrl || null;
-  } catch (err) {
-    console.warn('Webhook sync optional error:', err);
-    return null;
-  }
 }

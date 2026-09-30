@@ -152,7 +152,8 @@ export const pengurusList: Pengurus[] = [
     name: "Raihana Hanno M",
     role: "Sekretaris 1",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/IRMAS/sekertaris 1.jpeg",
+    avatarPosition: "object-top",
     quote: "Bertanggung jawab terhadap penataan administrasi, surat-menyurat, dan dokumentasi resmi organisasi sesuai AD/ART.",
     whatsapp: "+62 822-4665-7095",
     phone: "0822-4665-7095"
@@ -623,58 +624,5 @@ export const maulidPhotos: { id: string; url: string; title: string; desc: strin
   }
 ];
 
-export const galleryData: GalleryItem[] = [
-  {
-    id: "gal-1",
-    title: "Musyawarah Pembentukan & Pembahasan AD/ART IRMAS",
-    category: "pelatihan",
-    date: "20 Desember 2024",
-    location: "Serambi Masjid Jamie Al-Ikhlas",
-    imageUrl: "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl.webp",
-    images: [
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl.webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (1).webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (2).webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (3).webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (4).webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (5).webp",
-      "/dokumentasi musyawarah/Dokumentasi kegiatan Pembentukan & pengesahan Ikatan Remaja Masjid (IRMAS) Masjid Jamie Al-Ikhl (6).webp"
-    ],
-    description: "Musyawarah penetapan dan pengesahan Anggaran Dasar & Anggaran Rumah Tangga (AD/ART) Periode 2025/2027 bersama DKM dan remaja masjid di Masjid Jamie Al-Ikhlas RT 04/05 Jatibaru.",
-    participants: 45,
-    highlight: true
-  },
-  {
-    id: "gal-2",
-    title: "Peringatan Maulid Nabi Muhammad SAW 1447 Hijriah",
-    category: "phbi",
-    date: "27 September 2025",
-    location: "Serambi Masjid Jamie Al-Ikhlas",
-    imageUrl: "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se.webp",
-    images: [
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se.webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (1).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (2).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (3).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (4).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (5).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (6).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (7).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (8).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (9).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (10).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (11).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (12).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (13).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (14).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (15).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (16).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (17).webp",
-      "/dokumentasi maulid 1447 H/Dokumentasi kegiatan maulid nabi Muhammad Saw pada tanggal 27 September 2025 kegiatan ini di se (18).webp"
-    ],
-    description: "Dokumentasi kegiatan peringatan Maulid Nabi Muhammad SAW 1447 Hijriah pada tanggal 27 September 2025 di Masjid Jamie Al-Ikhlas bersama seluruh jamaah, pemuda IRMAS, dan alim ulama.",
-    participants: 250,
-    highlight: true
-  }
-];
+export const galleryData: GalleryItem[] = [];
 
