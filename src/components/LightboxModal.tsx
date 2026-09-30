@@ -8,24 +8,18 @@ import { extractDriveFileId, getDriveImageFallbackUrls } from '../lib/googleDriv
 
 function getOptimizedThumb(url: string | undefined): string {
   if (!url) return '';
-  if (url.includes('drive.google.com/thumbnail?id=')) {
-    return url;
-  }
   const fileId = extractDriveFileId(url);
   if (fileId) {
-    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+    return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
   }
   return resolveAsset(url);
 }
 
 function getOptimizedFullPhoto(url: string | undefined): string {
   if (!url) return '';
-  if (url.includes('drive.google.com/thumbnail?id=')) {
-    return url;
-  }
   const fileId = extractDriveFileId(url);
   if (fileId) {
-    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
+    return `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
   }
   return resolveAsset(url);
 }

@@ -108,7 +108,7 @@ function getOptimizedThumbUrl(url: string | undefined): string {
 
 /**
  * Resilient photo component with automatic anti-cache retry,
- * multiple Google Drive CDN fallback endpoints, and loading feedback.
+ * multiple Google Drive CDN fallback endpoints, timeout recovery, and loading feedback.
  */
 const ResilientCardImage: React.FC<{
   src: string;
@@ -119,6 +119,7 @@ const ResilientCardImage: React.FC<{
   const [urlIndex, setUrlIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     setUrlIndex(0);
@@ -127,6 +128,29 @@ const ResilientCardImage: React.FC<{
   }, [src]);
 
   const activeSrc = fallbackUrls[urlIndex] || src;
+
+  // If browser already completed cached image load synchronously
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setIsLoaded(true);
+    }
+  }, [activeSrc]);
+
+  // Fallback timer: if a particular CDN URL takes more than 7 seconds, advance to next endpoint
+  useEffect(() => {
+    if (isLoaded || hasError) return;
+    const timer = setTimeout(() => {
+      if (!isLoaded) {
+        if (urlIndex + 1 < fallbackUrls.length) {
+          setUrlIndex(prev => prev + 1);
+        } else {
+          setHasError(true);
+        }
+      }
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, [urlIndex, isLoaded, hasError, fallbackUrls.length]);
 
   const handleError = () => {
     if (urlIndex + 1 < fallbackUrls.length) {
@@ -142,7 +166,7 @@ const ResilientCardImage: React.FC<{
         <ImageOff className="w-7 h-7 text-emerald-500/70 mb-2" />
         <p className="text-xs font-semibold text-slate-200">Foto Tersimpan di Google Drive</p>
         <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
-          Foto sedang diproses oleh Google Drive
+          Foto tersimpan di akun Google Drive IRMAS
         </p>
         {fileId && (
           <a
@@ -153,7 +177,7 @@ const ResilientCardImage: React.FC<{
             className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg transition-colors shadow-xs"
           >
             <ExternalLink className="w-3 h-3" />
-            <span>Buka Foto</span>
+            <span>Buka di Google Drive</span>
           </a>
         )}
       </div>
@@ -169,10 +193,11 @@ const ResilientCardImage: React.FC<{
         </div>
       )}
       <img
+        ref={imgRef}
         key={activeSrc}
         src={activeSrc}
         alt={alt}
-        loading="lazy"
+        loading="eager"
         decoding="async"
         referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}

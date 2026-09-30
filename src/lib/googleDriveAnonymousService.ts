@@ -256,8 +256,9 @@ export function getDriveImageFallbackUrls(url: string | undefined): string[] {
   if (!fileId) return [url];
 
   return [
-    getDriveThumbnailUrl(fileId, 1200),
+    `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w1000`,
     `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}`,
+    getDriveThumbnailUrl(fileId, 1000),
     `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`
   ];
 }
