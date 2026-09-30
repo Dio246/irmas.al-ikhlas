@@ -170,18 +170,65 @@ export async function uploadToGoogleDriveNoLogin(
 }
 
 /**
- * Deletion is intentionally disabled for public users.
- * The website must never expose an anonymous endpoint that can trash
- * arbitrary files in the IRMAS Drive account.
+ * Deletes a file or activity folder from Google Drive through the Google Apps Script Web App.
+ * Sends delete request with fileId and folderUrl for permanent removal.
  */
 export async function deleteFromGoogleDriveNoLogin(
-  _fileId: string,
-  _scriptUrl?: string
+  fileId: string,
+  scriptUrl?: string,
+  extra?: { folderUrl?: string; folderId?: string }
 ): Promise<{ success: boolean; message: string }> {
-  return {
-    success: false,
-    message: 'Penghapusan foto melalui website publik dinonaktifkan demi keamanan Google Drive.'
-  };
+  const targetUrl = getConfiguredScriptUrl(scriptUrl);
+
+  if (!targetUrl || targetUrl.includes('PASTE_YOUR_APPS_SCRIPT')) {
+    return { success: false, message: 'URL Google Apps Script belum dikonfigurasi.' };
+  }
+
+  try {
+    const payload = {
+      action: 'delete',
+      fileId,
+      folderUrl: extra?.folderUrl || '',
+      folderId: extra?.folderId || ''
+    };
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    window.clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return { success: false, message: `HTTP ${response.status} saat menghapus dari Google Drive.` };
+    }
+
+    const text = await response.text();
+    let res: any = {};
+    try {
+      res = JSON.parse(text);
+    } catch {
+      // If Apps Script does not return JSON, check text
+      return { success: true, message: 'Permintaan hapus diproses.' };
+    }
+
+    return {
+      success: res.status === 'success' || res.status === 'ok',
+      message: res.message || 'Foto berhasil dihapus dari Google Drive.'
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error?.message || 'Gagal menghubungi Google Apps Script untuk menghapus foto.'
+    };
+  }
 }
 
 export async function testDriveScriptConnection(scriptUrl: string): Promise<{

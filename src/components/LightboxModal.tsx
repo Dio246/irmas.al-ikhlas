@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2, ImageOff, ExternalLink } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Tag, Download, Check, ChevronLeft, ChevronRight, Images, Loader2, ImageOff, ExternalLink, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { GalleryItem } from '../types';
 import { resolveAsset } from '../lib/assetHelper';
 import { downloadAlbumPhotos } from '../lib/downloadHelper';
@@ -28,21 +28,27 @@ interface LightboxModalProps {
   item: GalleryItem | null;
   initialIndex?: number;
   onClose: () => void;
+  onDelete?: (item: GalleryItem) => Promise<void> | void;
 }
 
-export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex = 0, onClose }) => {
+export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex = 0, onClose, onDelete }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<string>('');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(initialIndex);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync index when item changes
   useEffect(() => {
     setActivePhotoIdx(initialIndex);
+    setShowConfirmDelete(false);
+    setIsDeleting(false);
   }, [item, initialIndex]);
 
   const imagesList = item ? (item.images && item.images.length > 0 ? item.images : [item.imageUrl]) : [];
   const currentImage = imagesList[activePhotoIdx] || item?.imageUrl || '';
+  const isDefaultItem = item?.id === 'gal-1' || item?.id === 'gal-2';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,15 +115,90 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
         className="relative bg-white rounded-2xl overflow-hidden max-w-5xl w-full max-h-[92vh] shadow-2xl border border-emerald-100 flex flex-col md:flex-row my-auto"
       >
         
-        {/* Close Button */}
-        <button
-          id="btn-close-lightbox"
-          onClick={onClose}
-          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
-          aria-label="Tutup detail foto"
-        >
-          <X className="w-5 h-5 shrink-0" />
-        </button>
+        {/* Top-Right Action Button: Tombol Hapus Dokumentasi (Kecil di atas kanan menggantikan tempat tombol X) */}
+        {onDelete && !isDefaultItem ? (
+          <button
+            id="btn-delete-lightbox"
+            type="button"
+            onClick={() => setShowConfirmDelete(true)}
+            className="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg transition-transform active:scale-90 cursor-pointer"
+            title="Hapus dokumentasi ini secara permanen"
+            aria-label="Hapus dokumentasi ini secara permanen"
+          >
+            <Trash2 className="w-4 h-4 shrink-0" />
+          </button>
+        ) : (
+          <button
+            id="btn-close-lightbox"
+            type="button"
+            onClick={onClose}
+            className="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Tutup detail foto"
+          >
+            <X className="w-4 h-4 shrink-0" />
+          </button>
+        )}
+
+        {/* Delete Confirmation Dialog Overlay inside Lightbox Modal */}
+        {showConfirmDelete && (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center text-white animate-in fade-in"
+          >
+            <div className="w-14 h-14 rounded-full bg-red-500/20 border-2 border-red-500/40 text-red-400 flex items-center justify-center mb-3 shadow-lg">
+              <Trash2 className="w-7 h-7" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1.5">
+              Hapus Dokumentasi Permanen?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 mb-2 max-w-sm">
+              Kegiatan <span className="font-bold text-white">"{item.title}"</span> beserta semua fotonya akan dihapus secara permanen dari Google Drive dan database cloud.
+            </p>
+            <p className="text-[11px] text-amber-300 font-medium mb-5 bg-amber-950/60 border border-amber-500/30 px-3 py-1.5 rounded-lg max-w-sm">
+              ⚠️ Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-200 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  if (!onDelete) return;
+                  try {
+                    setIsDeleting(true);
+                    await onDelete(item);
+                    onClose();
+                  } catch (err) {
+                    console.error('Gagal menghapus:', err);
+                  } finally {
+                    setIsDeleting(false);
+                    setShowConfirmDelete(false);
+                  }
+                }}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-xs sm:text-sm font-bold text-white shadow-lg cursor-pointer disabled:opacity-50 flex items-center gap-2 transition-transform active:scale-95"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Menghapus dari Cloud...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Ya, Hapus Permanen</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Photo Main Area (Left Column) */}
         <div className="md:w-3/5 bg-slate-950 flex flex-col justify-between relative min-h-[300px] md:min-h-[500px] select-none">

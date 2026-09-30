@@ -10,6 +10,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Rekap penghapusan dokumentasi (tombstone) agar sinkronisasi real-time instan antar perangkat
+    match /deleted_gallery_items/{itemId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Health-check / connection validation document
     match /test/{docId} {
       allow read: if true;

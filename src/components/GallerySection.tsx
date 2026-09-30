@@ -84,7 +84,8 @@ import {
   subscribeToGalleryItems,
   deleteGalleryItemFromFirestore,
   syncLocalItemsToFirestore,
-  getGalleryItemsFromFirestore
+  getGalleryItemsFromFirestore,
+  getDeletedGalleryIdsFromFirestore
 } from '../lib/firebaseGalleryService';
 import {
   deletePhotoFromGoogleDrive
@@ -212,6 +213,8 @@ const ResilientCardImage: React.FC<{
 
 interface GallerySectionProps {
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
+  onDeleteItem?: (item: GalleryItem) => Promise<void> | void;
+  registerDeleteHandler?: (handler: (item: GalleryItem) => Promise<void>) => void;
 }
 
 interface ActivityCardProps {
@@ -222,11 +225,9 @@ interface ActivityCardProps {
   isCustom?: boolean;
 }
 
-const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onSelectImage, onDelete, isCustom }) => {
+const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onSelectImage }) => {
   const imagesList = item.images && item.images.length > 0 ? item.images : [item.imageUrl];
   const [activeIdx, setActiveIdx] = useState(0);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [isDeletingCard, setIsDeletingCard] = useState(false);
 
   // Lightweight touch tracking that NEVER conflicts with mobile vertical scrolling
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -325,75 +326,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
                 <span className="tabular-nums">{activeIdx + 1}/{imagesList.length} Foto</span>
               </span>
             )}
-
-            {/* Delete button for user-uploaded custom documentation */}
-            {isCustom && onDelete && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowConfirmDelete(true);
-                }}
-                title="Hapus dokumentasi ini"
-                aria-label="Hapus dokumentasi ini"
-                className="w-7 h-7 rounded-full bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center backdrop-blur-xs shadow-md cursor-pointer transition-transform active:scale-90"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
         </div>
-
-        {/* Delete Confirmation Overlay inside card */}
-        {showConfirmDelete && (
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs z-30 flex flex-col items-center justify-center p-4 text-center text-white"
-          >
-            <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-2">
-              <Trash2 className="w-5 h-5" />
-            </div>
-            <h4 className="text-sm font-bold text-white mb-1">Hapus Dokumentasi Ini?</h4>
-            <p className="text-xs text-slate-300 mb-3 max-w-[240px]">
-              Dokumentasi ini akan dihapus secara permanen dari Google Drive dan database Cloud.
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={isDeletingCard}
-                onClick={() => setShowConfirmDelete(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingCard}
-                onClick={async () => {
-                  try {
-                    setIsDeletingCard(true);
-                    if (onDelete) {
-                      await onDelete(item);
-                    }
-                  } finally {
-                    setIsDeletingCard(false);
-                    setShowConfirmDelete(false);
-                  }
-                }}
-                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold text-white shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {isDeletingCard ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                    <span>Menghapus...</span>
-                  </>
-                ) : (
-                  <span>Ya, Hapus</span>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Left & Right Interactive Scroll Arrows (if multiple photos) */}
         {imagesList.length > 1 && (
@@ -515,7 +449,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
   );
 };
 
-export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage }) => {
+export const GallerySection: React.FC<GallerySectionProps> = ({ 
+  onSelectImage, 
+  onDeleteItem,
+  registerDeleteHandler 
+}) => {
   // Dokumentasi bawaan website. Selalu dipertahankan di urutan paling awal.
   const defaultGalleryItems = useMemo<GalleryItem[]>(() => [
     {
@@ -613,6 +551,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       // 2. Ambil data tersinkronisasi dari Cloud Firestore
       const firestoreItems = await getGalleryItemsFromFirestore().catch(() => []);
 
+      // 3. Ambil daftar item yang telah dihapus agar tidak muncul kembali
+      const deletedIds = await getDeletedGalleryIdsFromFirestore().catch(() => new Set<string>());
+
       if (isMountedRef.current) {
         const itemMap = new Map<string, GalleryItem>();
 
@@ -621,7 +562,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           firestoreItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
               const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              itemMap.set(key, item);
+              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
+                itemMap.set(key, item);
+              }
             }
           });
         }
@@ -631,7 +574,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
           gDriveItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
               const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              itemMap.set(key, item);
+              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
+                itemMap.set(key, item);
+              }
             }
           });
         }
@@ -938,10 +883,17 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       if (match && match[1]) fileIdsToDelete.push(match[1]);
     }
 
+    const folderId = targetItem.driveFolderUrl
+      ? targetItem.driveFolderUrl.split('/folders/')[1]?.split('?')[0] || ''
+      : '';
+
     for (const fid of fileIdsToDelete) {
       try {
         // Try deletion via Google Apps Script (Works without user OAuth login)
-        await deleteFromGoogleDriveNoLogin(fid, scriptUrl.trim());
+        await deleteFromGoogleDriveNoLogin(fid, scriptUrl.trim(), {
+          folderUrl: targetItem.driveFolderUrl,
+          folderId
+        });
       } catch (scriptErr) {
         console.warn('Gagal delete via Apps Script:', scriptErr);
       }
@@ -956,16 +908,32 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ onSelectImage })
       }
     }
 
-    // 3. Remove document from Firebase Firestore so it is erased from ALL devices
+    // 3. Remove document from Firebase Firestore and record tombstone so it is erased from ALL devices
     try {
-      await deleteGalleryItemFromFirestore(targetItem.id);
+      await deleteGalleryItemFromFirestore(targetItem.id, {
+        title: targetItem.title,
+        folderUrl: targetItem.driveFolderUrl,
+        fileIds: fileIdsToDelete
+      });
     } catch (err) {
       console.warn('Gagal menghapus dari Firestore:', err);
     }
 
     // 4. Update local state
     setItems(prev => prev.filter(it => it.id !== targetItem.id));
+
+    if (onDeleteItem) {
+      try {
+        await onDeleteItem(targetItem);
+      } catch {}
+    }
   };
+
+  useEffect(() => {
+    if (registerDeleteHandler) {
+      registerDeleteHandler(handleDeleteItem);
+    }
+  }, [registerDeleteHandler]);
 
   // Submit Handler: Upload otomatis ke Google Drive jekb66476@gmail.com dengan sanitasi ketat & Anti-Spam
   const handleSaveDocumentation = async (e: React.FormEvent) => {

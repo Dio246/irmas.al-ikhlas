@@ -12,6 +12,7 @@ export default function App() {
   const [profileTab, setProfileTab] = useState<'profil' | 'visi' | 'adart' | 'pengurus'>('profil');
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
+  const galleryDeleteHandlerRef = useRef<((item: GalleryItem) => Promise<void>) | null>(null);
 
   // Timestamp lock to prevent any intermediate menu flickering during programmatic smooth scrolling
   const navLockUntilRef = useRef<number>(0);
@@ -141,6 +142,9 @@ export default function App() {
             setSelectedGalleryItem(item);
             setSelectedPhotoIndex(photoIndex);
           }}
+          registerDeleteHandler={(handler) => {
+            galleryDeleteHandlerRef.current = handler;
+          }}
         />
 
       </main>
@@ -153,6 +157,12 @@ export default function App() {
         item={selectedGalleryItem}
         initialIndex={selectedPhotoIndex}
         onClose={() => setSelectedGalleryItem(null)}
+        onDelete={async (item) => {
+          if (galleryDeleteHandlerRef.current) {
+            await galleryDeleteHandlerRef.current(item);
+          }
+          setSelectedGalleryItem(null);
+        }}
       />
 
     </div>

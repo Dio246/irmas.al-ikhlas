@@ -38,6 +38,7 @@ export const db = (() => {
 })();
 
 export const GALLERY_COLLECTION = 'gallery_items';
+export const DELETED_GALLERY_COLLECTION = 'deleted_gallery_items';
 
 /**
  * Saves a new documentation item to Firebase Firestore so it is instantly
@@ -212,13 +213,51 @@ export function subscribeToGalleryItems(
 }
 
 /**
- * Optional delete item helper
+ * Delete item helper: removes from gallery_items AND records tombstone in deleted_gallery_items
+ * so all connected devices immediately purge it, even if Google Apps Script takes time to reflect.
  */
-export async function deleteGalleryItemFromFirestore(itemId: string): Promise<void> {
+export async function deleteGalleryItemFromFirestore(
+  itemId: string,
+  extraData?: { title?: string; folderUrl?: string; fileIds?: string[] }
+): Promise<void> {
   try {
+    // 1. Delete from main active collection
     await deleteDoc(doc(db, GALLERY_COLLECTION, itemId));
   } catch (error) {
-    console.error('Gagal menghapus item dari Firestore:', error);
-    throw error;
+    console.warn('Gagal menghapus item dari gallery_items:', error);
+  }
+
+  try {
+    // 2. Write tombstone to deleted_gallery_items so all clients purge it from memory & cache
+    const tombstoneRef = doc(db, DELETED_GALLERY_COLLECTION, itemId);
+    await setDoc(tombstoneRef, {
+      id: itemId,
+      deletedAt: Date.now(),
+      title: extraData?.title || '',
+      folderUrl: extraData?.folderUrl || '',
+      fileIds: extraData?.fileIds || []
+    }, { merge: true });
+  } catch (tombstoneErr) {
+    console.warn('Gagal mencatat tombstone penghapusan:', tombstoneErr);
+  }
+}
+
+/**
+ * Retrieves all deleted item identifiers so client can filter them out immediately
+ */
+export async function getDeletedGalleryIdsFromFirestore(): Promise<Set<string>> {
+  try {
+    const snapshot = await getDocs(collection(db, DELETED_GALLERY_COLLECTION));
+    const ids = new Set<string>();
+    snapshot.docs.forEach(d => {
+      ids.add(d.id);
+      const data = d.data();
+      if (data?.id) ids.add(data.id);
+      if (data?.folderUrl) ids.add(data.folderUrl);
+      if (data?.title) ids.add(data.title.trim().toLowerCase());
+    });
+    return ids;
+  } catch {
+    return new Set<string>();
   }
 }
