@@ -51,6 +51,25 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
   const currentImage = imagesList[activePhotoIdx] || item?.imageUrl || '';
   const isDefaultItem = item?.id === 'gal-1' || item?.id === 'gal-2';
 
+  // Preload neighboring photos (prev & next) in the background to ensure instant zero-glitch sliding
+  useEffect(() => {
+    if (imagesList.length <= 1) return;
+    const nextIdx = (activePhotoIdx + 1) % imagesList.length;
+    const prevIdx = (activePhotoIdx - 1 + imagesList.length) % imagesList.length;
+
+    const nextUrl = getOptimizedFullPhoto(imagesList[nextIdx]);
+    const prevUrl = getOptimizedFullPhoto(imagesList[prevIdx]);
+
+    if (nextUrl) {
+      const imgNext = new Image();
+      imgNext.src = nextUrl;
+    }
+    if (prevUrl) {
+      const imgPrev = new Image();
+      imgPrev.src = prevUrl;
+    }
+  }, [activePhotoIdx, imagesList]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -207,11 +226,12 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
           {/* Main Photo with Prev / Next Navigation */}
           <div className="relative flex-1 flex items-center justify-center p-2 overflow-hidden">
             <img
-              key={currentImage}
               src={getOptimizedFullPhoto(currentImage)}
               alt={`${item.title} - Foto ${activePhotoIdx + 1}`}
-              className="w-full h-full max-h-[62vh] object-contain transition-all duration-300"
+              className="w-full h-full max-h-[62vh] object-contain transition-opacity duration-150"
               referrerPolicy="no-referrer"
+              loading="eager"
+              decoding="async"
               onError={(e) => {
                 // If full photo fails, fallback to direct thumbnail or resolveAsset
                 const target = e.currentTarget;
