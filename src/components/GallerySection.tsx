@@ -39,6 +39,7 @@ import {
 import { GalleryItem, GalleryCategory } from '../types';
 import { musyawarahPhotos, maulidPhotos } from '../data/irmasData';
 import { resolveAsset } from '../lib/assetHelper';
+import { formatCategoryLabel, resolveGalleryCategory } from '../lib/categoryHelper';
 import {
   validateUploadedFile,
   sanitizeText,
@@ -219,7 +220,7 @@ interface GallerySectionProps {
 
 interface ActivityCardProps {
   item: GalleryItem;
-  getCategoryLabel: (cat: GalleryCategory) => string;
+  getCategoryLabel: (cat: GalleryCategory, itemTitle?: string) => string;
   onSelectImage: (item: GalleryItem, photoIndex?: number) => void;
   onDelete?: (item: GalleryItem) => Promise<void> | void;
   isCustom?: boolean;
@@ -315,7 +316,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
           {/* Category Pill */}
           <span className="bg-emerald-700/95 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-0.5 rounded-md shadow-xs pointer-events-auto">
-            {getCategoryLabel(item.category)}
+            {getCategoryLabel(item.category, item.title)}
           </span>
 
           <div className="flex items-center gap-1.5 pointer-events-auto">
@@ -548,8 +549,11 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       // 1. Ambil data dari Google Apps Script (Google Drive jekb66476@gmail.com)
       const gDriveItems = await fetchGoogleDriveGallery(scriptUrl).catch(() => []);
       
-      // 2. Ambil data tersinkronisasi dari Cloud Firestore
-      const firestoreItems = await getGalleryItemsFromFirestore().catch(() => []);
+      // 2. Ambil data tersinkronisasi dari Cloud Firestore & IndexedDB lokal
+      const [firestoreItems, localItems] = await Promise.all([
+        getGalleryItemsFromFirestore().catch(() => []),
+        loadCustomGalleryItems().catch(() => [])
+      ]);
 
       // 3. Ambil daftar item yang telah dihapus agar tidak muncul kembali
       const deletedIds = await getDeletedGalleryIdsFromFirestore().catch(() => new Set<string>());
@@ -557,9 +561,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       if (isMountedRef.current) {
         const itemMap = new Map<string, GalleryItem>();
 
-        // Sinkronkan data Firestore
-        if (firestoreItems && firestoreItems.length > 0) {
-          firestoreItems.forEach(item => {
+        // Sinkronkan data lokal tersimpan lebih dulu
+        if (localItems && localItems.length > 0) {
+          localItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
               const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
               if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
@@ -569,13 +573,70 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
           });
         }
 
-        // Sinkronkan data Google Drive dari Google Apps Script sebagai sumber utama
+        // Sinkronkan data Firestore
+        if (firestoreItems && firestoreItems.length > 0) {
+          firestoreItems.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
+              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
+                const existing = itemMap.get(key);
+                if (existing) {
+                  itemMap.set(key, {
+                    ...item,
+                    category: item.category || existing.category,
+                    description: (item.description && !item.description.startsWith('Dokumentasi ') && !item.description.includes('di Google Drive'))
+                      ? item.description
+                      : (existing.description || item.description),
+                    date: (item.date && item.date !== 'Terbaru') ? item.date : (existing.date || item.date),
+                    location: item.location || existing.location,
+                    participants: item.participants || existing.participants
+                  });
+                } else {
+                  itemMap.set(key, item);
+                }
+              }
+            }
+          });
+        }
+
+        // Sinkronkan data Google Drive dari Google Apps Script sebagai sumber utama gambar
         if (gDriveItems && gDriveItems.length > 0) {
           gDriveItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
               const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
               if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
-                itemMap.set(key, item);
+                const existing = itemMap.get(key);
+                if (existing) {
+                  // Jika item sudah ada dari Firestore atau input user,
+                  // pertahankan kategori, deskripsi, tanggal, dan lokasi asli pilihan user
+                  const chosenCat = (existing.category && existing.category !== ('kegiatan' as any))
+                    ? existing.category
+                    : resolveGalleryCategory(item.category, item.title);
+
+                  itemMap.set(key, {
+                    ...item,
+                    category: chosenCat,
+                    description: existing.description && !existing.description.startsWith('Dokumentasi ') && !existing.description.includes('di Google Drive')
+                      ? existing.description
+                      : (item.description && !item.description.includes('di Google Drive') ? item.description : `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`),
+                    date: existing.date && existing.date !== 'Terbaru' ? existing.date : item.date,
+                    location: existing.location || item.location,
+                    participants: existing.participants || item.participants
+                  });
+                } else {
+                  // Jika item dari Google Drive belum ada di cache Firestore/lokal,
+                  // bersihkan kategori agar sesuai pilihan jenis kegiatan dan deskripsi rapi
+                  const inferredCategory = resolveGalleryCategory(item.category, item.title);
+                  const cleanDesc = item.description && item.description.startsWith('Dokumentasi ') && item.description.includes('di Google Drive')
+                    ? `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`
+                    : (item.description || `Dokumentasi kegiatan ${item.title}.`);
+
+                  itemMap.set(key, {
+                    ...item,
+                    category: inferredCategory,
+                    description: cleanDesc
+                  });
+                }
               }
             }
           });
@@ -640,7 +701,32 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
           remoteItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
               const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              map.set(key, item);
+              const existing = map.get(key);
+              if (existing) {
+                const chosenCat = (item.category && item.category !== ('kegiatan' as any))
+                  ? item.category
+                  : ((existing.category && existing.category !== ('kegiatan' as any))
+                    ? existing.category
+                    : resolveGalleryCategory(item.category, item.title));
+
+                map.set(key, {
+                  ...item,
+                  category: chosenCat,
+                  description: (item.description && !item.description.startsWith('Dokumentasi ') && !item.description.includes('di Google Drive'))
+                    ? item.description
+                    : (existing.description && !existing.description.startsWith('Dokumentasi ') && !existing.description.includes('di Google Drive')
+                      ? existing.description
+                      : (item.description && !item.description.includes('di Google Drive') ? item.description : `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`)),
+                  date: (item.date && item.date !== 'Terbaru') ? item.date : (existing.date || item.date),
+                  location: item.location || existing.location,
+                  participants: item.participants || existing.participants
+                });
+              } else {
+                map.set(key, {
+                  ...item,
+                  category: resolveGalleryCategory(item.category, item.title)
+                });
+              }
             }
           });
           const list = Array.from(map.values()).filter(item => item.id !== 'gal-1' && item.id !== 'gal-2');
@@ -689,16 +775,17 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
   ];
 
   const filteredItems = items.filter((item) => {
-    const matchesCategory = activeCategory === 'semua' || item.category === activeCategory;
+    const resolvedCat = resolveGalleryCategory(item.category, item.title);
+    const matchesCategory = activeCategory === 'semua' || item.category === activeCategory || resolvedCat === activeCategory;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.location.toLowerCase().includes(searchQuery.toLowerCase());
+                          item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          formatCategoryLabel(item.category, item.title).toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const getCategoryLabel = (cat: GalleryCategory) => {
-    const found = categories.find(c => c.id === cat);
-    return found ? found.label : cat;
+  const getCategoryLabel = (cat: GalleryCategory, itemTitle?: string) => {
+    return formatCategoryLabel(cat, itemTitle);
   };
 
   // Google Drive Connect Handler
@@ -794,6 +881,12 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     setSecurityMessage(null);
     setIsUploading(false);
     setIsValidatingFiles(false);
+    setNewTitle('');
+    setNewDescription('');
+    setNewCategory('kajian');
+    setNewDate('');
+    setNewLocation("Masjid Jamie Al-Ikhlas");
+    setNewParticipants(50);
   };
 
   // Persist gallery items (saved to local state, IndexedDB, and Cloud Firestore)

@@ -7,6 +7,7 @@
  */
 
 import type { GalleryItem } from '../types';
+import { resolveGalleryCategory } from './categoryHelper';
 
 export const TARGET_DRIVE_EMAIL = 'jekb66476@gmail.com';
 export const TARGET_FOLDER_NAME = 'Dokumentasi IRMAS Al-Ikhlas';
@@ -417,8 +418,10 @@ export async function fetchGoogleDriveGallery(
             ),
 
           category:
-            item.category ||
-            'kajian',
+            resolveGalleryCategory(
+              item.category,
+              String(item.title || item.activityTitle || '')
+            ),
 
           date:
             String(

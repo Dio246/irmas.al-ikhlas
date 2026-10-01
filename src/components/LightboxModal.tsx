@@ -5,6 +5,7 @@ import { GalleryItem } from '../types';
 import { resolveAsset } from '../lib/assetHelper';
 import { downloadAlbumPhotos } from '../lib/downloadHelper';
 import { extractDriveFileId, getDriveImageFallbackUrls } from '../lib/googleDriveAnonymousService';
+import { formatCategoryLabel } from '../lib/categoryHelper';
 
 function getOptimizedThumb(url: string | undefined): string {
   if (!url) return '';
@@ -288,7 +289,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, initialIndex
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-md">
                 <Tag className="w-3 h-3 shrink-0" />
-                {item.category}
+                {formatCategoryLabel(item.category, item.title)}
               </span>
               {item.participants && (
                 <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md">

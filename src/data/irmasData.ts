@@ -59,39 +59,6 @@ export const visionMission = {
   ]
 };
 
-export const dkmList: Pengurus[] = [
-  {
-    id: "dkm-ketua",
-    name: "Ust. Rosadi",
-    role: "Ketua DKM",
-    division: "DKM",
-    avatar: "/Foto BPH/DKM/Ketua DKM.jpeg",
-    avatarPosition: "object-top",
-    quote: "Pemimpin dan penanggung jawab kemakmuran Masjid Jamie Al-Ikhlas serta pelindung utama Ikatan Remaja Masjid.",
-    whatsapp: "",
-    phone: "-"
-  },
-  {
-    id: "dkm-sekretaris",
-    name: "Ust. Amir Sunyoto",
-    role: "Sekretaris DKM",
-    division: "DKM",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
-    quote: "Bertanggung jawab atas penataan administrasi, arsip, dan persuratan resmi DKM Masjid Jamie Al-Ikhlas.",
-    whatsapp: "",
-    phone: "-"
-  },
-  {
-    id: "dkm-bendahara",
-    name: "Ust. Adi Susmito",
-    role: "Bendahara DKM",
-    division: "DKM",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
-    quote: "Mengelola sirkulasi keuangan dan inventaris kemasjidan secara amanah, akuntabel, dan transparan.",
-    whatsapp: "",
-    phone: "-"
-  }
-];
 
 export const pengurusList: Pengurus[] = [
   {
@@ -109,7 +76,7 @@ export const pengurusList: Pengurus[] = [
     name: "Ahmad Sofyan",
     role: "Pembantu Pembina 1",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/pembantu pembina 1.jpeg",
+    avatar: "/Foto BPH/Pembina/pembantu pembina 1.jpeg",
     avatarPosition: "object-center",
     quote: "Mendampingi serta membantu pembina dalam pengawasan, pembinaan pemuda-pemudi, dan kelancaran program kerja IRMAS.",
     whatsapp: "",
@@ -117,7 +84,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-pembantu-pembina-2",
-    name: "M. Nashif Hisyam",
+    name: "Dio Surya Pratama",
     role: "Pembantu Pembina 2",
     division: "BPH",
     avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
@@ -130,7 +97,7 @@ export const pengurusList: Pengurus[] = [
     name: "M. Addym Jaka Anugrah",
     role: "Ketua IRMAS",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/ketua irmas.jpeg",
+    avatar: "/Foto BPH/Struktur/ketua irmas.jpeg",
     avatarPosition: "object-center",
     quote: "Bertanggung jawab terhadap kesinambungan dan keberlangsungan organisasi baik internal maupun eksternal demi ridho Allah SWT.",
     whatsapp: "+62 838-6481-993",
@@ -141,7 +108,7 @@ export const pengurusList: Pengurus[] = [
     name: "Danish Alfisyahri P. S.",
     role: "Wakil Ketua",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/wakil ketua irmas.jpeg",
+    avatar: "/Foto BPH/Struktur/wakil ketua irmas.jpeg",
     avatarPosition: "object-center",
     quote: "Mengkoordinir kelancaran program kerja dan siap menyokong kepemimpinan organisasi.",
     whatsapp: "+62 878-4753-3981",
@@ -152,7 +119,7 @@ export const pengurusList: Pengurus[] = [
     name: "Raihana Hanno M",
     role: "Sekretaris 1",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/sekertaris 1.jpeg",
+    avatar: "/Foto BPH/Struktur/sekertaris 1.jpeg",
     avatarPosition: "object-top",
     quote: "Bertanggung jawab terhadap penataan administrasi, surat-menyurat, dan dokumentasi resmi organisasi sesuai AD/ART.",
     whatsapp: "+62 822-4665-7095",
@@ -163,7 +130,7 @@ export const pengurusList: Pengurus[] = [
     name: "Talita Hasna Salsabila",
     role: "Sekretaris 2",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/sekertaris 2.jpeg",
+    avatar: "/Foto BPH/Struktur/sekertaris 2.jpeg",
     avatarPosition: "object-center",
     quote: "Mendukung kelancaran tata kelola arsip, notulensi rapat, dan ketertiban administrasi persyarikatan.",
     whatsapp: "+62 878-5218-3937",
@@ -174,7 +141,7 @@ export const pengurusList: Pengurus[] = [
     name: "Sabrina Zakiyyah Amani",
     role: "Bendahara 1",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/bendahara 1.jpeg",
+    avatar: "/Foto BPH/Struktur/bendahara 1.jpeg",
     avatarPosition: "object-center",
     quote: "Bertanggung jawab terhadap pengelolaan keuangan kas dan inventarisasi persyarikatan secara amanah dan transparan.",
     whatsapp: "+62 813-1513-0521",
@@ -185,7 +152,7 @@ export const pengurusList: Pengurus[] = [
     name: "Alifah Huwaida",
     role: "Bendahara 2",
     division: "BPH",
-    avatar: "/Foto BPH/IRMAS/bendahara 2.jpeg",
+    avatar: "/Foto BPH/Struktur/bendahara 2.jpeg",
     avatarPosition: "object-center",
     quote: "Mencatat sirkulasi uang kas iuran anggota, sumbangan masyarakat, dan pertanggungjawaban dana kegiatan.",
     whatsapp: "+62 831-9865-9462",

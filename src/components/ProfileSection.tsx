@@ -266,7 +266,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             </div>
           )}
 
-          {/* Tab 4: Struktur Pengurus DKM & BPH IRMAS */}
+          {/* Tab 4: Struktur Pengurus IRMAS */}
           {currentTab === 'pengurus' && (
             <div id="pengurus-content" className="animate-tab-fade space-y-6">
               <PengurusSection embeddedInTab />

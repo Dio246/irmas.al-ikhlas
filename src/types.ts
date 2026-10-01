@@ -24,7 +24,7 @@ export interface Pengurus {
   id: string;
   name: string;
   role: string;
-  division: 'BPH' | 'Syiar & Dakwah' | 'Kaderisasi & Minat Bakat' | 'Humas & Media' | 'Dana Usaha & Sosial' | 'DKM';
+  division: 'BPH' | 'Syiar & Dakwah' | 'Kaderisasi & Minat Bakat' | 'Humas & Media' | 'Dana Usaha & Sosial';
   avatar: string;
   avatarPosition?: string;
   quote?: string;
