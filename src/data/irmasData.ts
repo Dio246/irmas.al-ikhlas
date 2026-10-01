@@ -66,7 +66,7 @@ export const pengurusList: Pengurus[] = [
     name: "Ust. Ahmad Jarno",
     role: "Pembina IRMAS",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/Pembina/pembina irmas.jpeg",
     quote: "Berkewajiban memberikan arahan, bimbingan, dan nasihat kepada pengurus IRMAS sesuai AD/ART BAB VII Pasal 12 demi kemakmuran masjid dan ridho Allah SWT.",
     whatsapp: "",
     phone: "-"
@@ -87,7 +87,7 @@ export const pengurusList: Pengurus[] = [
     name: "Dio Surya Pratama",
     role: "Pembantu Pembina 2",
     division: "BPH",
-    avatar: "/WhatsApp Image 2026-08-25 at 02.52.46.jpeg",
+    avatar: "/Foto BPH/Pembina/pembantu pembina 2.jpeg",
     quote: "Mendampingi serta membantu pembina dalam pengawasan, pembinaan pemuda-pemudi, dan kelancaran program kerja IRMAS.",
     whatsapp: "",
     phone: "-"
