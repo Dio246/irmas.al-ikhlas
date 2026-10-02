@@ -561,82 +561,115 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       if (isMountedRef.current) {
         const itemMap = new Map<string, GalleryItem>();
 
-        // Sinkronkan data lokal tersimpan lebih dulu
+        // Helper to find matching existing item by folderUrl, title, or id
+        const findExistingKey = (map: Map<string, GalleryItem>, it: GalleryItem): string | undefined => {
+          const normTitle = it.title?.trim().toLowerCase();
+          for (const [k, v] of map.entries()) {
+            if (it.driveFolderUrl && v.driveFolderUrl && it.driveFolderUrl === v.driveFolderUrl) {
+              return k;
+            }
+            if (normTitle && v.title?.trim().toLowerCase() === normTitle) {
+              return k;
+            }
+            if (it.id === v.id) {
+              return k;
+            }
+          }
+          return undefined;
+        };
+
+        const isItemDeleted = (it: GalleryItem): boolean => {
+          if (deletedIds.has(it.id)) return true;
+          if (it.driveFolderUrl && deletedIds.has(it.driveFolderUrl)) return true;
+          return false;
+        };
+
+        // 1. Sinkronkan data lokal tersimpan lebih dulu
         if (localItems && localItems.length > 0) {
           localItems.forEach(item => {
-            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
-              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2' && !isItemDeleted(item)) {
+              const matchedKey = findExistingKey(itemMap, item);
+              const key = matchedKey || item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              itemMap.set(key, item);
+            }
+          });
+        }
+
+        // 2. Sinkronkan data Firestore
+        if (firestoreItems && firestoreItems.length > 0) {
+          firestoreItems.forEach(item => {
+            if (item.id !== 'gal-1' && item.id !== 'gal-2' && !isItemDeleted(item)) {
+              const matchedKey = findExistingKey(itemMap, item);
+              const key = matchedKey || item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              const existing = itemMap.get(key);
+              if (existing) {
+                const mergedImages = (existing.images && existing.images.length > (item.images?.length || 0))
+                  ? existing.images
+                  : (item.images && item.images.length > 0 ? item.images : existing.images);
+
+                itemMap.set(key, {
+                  ...item,
+                  category: item.category || existing.category,
+                  description: (item.description && !item.description.startsWith('Dokumentasi ') && !item.description.includes('di Google Drive'))
+                    ? item.description
+                    : (existing.description || item.description),
+                  date: (item.date && item.date !== 'Terbaru') ? item.date : (existing.date || item.date),
+                  location: item.location || existing.location,
+                  participants: item.participants || existing.participants,
+                  images: mergedImages,
+                  imageUrl: (mergedImages && mergedImages[0]) || item.imageUrl || existing.imageUrl
+                });
+              } else {
                 itemMap.set(key, item);
               }
             }
           });
         }
 
-        // Sinkronkan data Firestore
-        if (firestoreItems && firestoreItems.length > 0) {
-          firestoreItems.forEach(item => {
-            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
-              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
-                const existing = itemMap.get(key);
-                if (existing) {
-                  itemMap.set(key, {
-                    ...item,
-                    category: item.category || existing.category,
-                    description: (item.description && !item.description.startsWith('Dokumentasi ') && !item.description.includes('di Google Drive'))
-                      ? item.description
-                      : (existing.description || item.description),
-                    date: (item.date && item.date !== 'Terbaru') ? item.date : (existing.date || item.date),
-                    location: item.location || existing.location,
-                    participants: item.participants || existing.participants
-                  });
-                } else {
-                  itemMap.set(key, item);
-                }
-              }
-            }
-          });
-        }
-
-        // Sinkronkan data Google Drive dari Google Apps Script sebagai sumber utama gambar
+        // 3. Sinkronkan data Google Drive dari Google Apps Script sebagai sumber utama gambar
         if (gDriveItems && gDriveItems.length > 0) {
           gDriveItems.forEach(item => {
-            if (item.id !== 'gal-1' && item.id !== 'gal-2') {
-              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
-              if (!deletedIds.has(item.id) && !deletedIds.has(key) && !(item.title && deletedIds.has(item.title.trim().toLowerCase()))) {
-                const existing = itemMap.get(key);
-                if (existing) {
-                  // Jika item sudah ada dari Firestore atau input user,
-                  // pertahankan kategori, deskripsi, tanggal, dan lokasi asli pilihan user
-                  const chosenCat = (existing.category && existing.category !== ('kegiatan' as any))
-                    ? existing.category
-                    : resolveGalleryCategory(item.category, item.title);
+            if (item.id !== 'gal-1' && item.id !== 'gal-2' && !isItemDeleted(item)) {
+              const matchedKey = findExistingKey(itemMap, item);
+              const key = matchedKey || item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              const existing = itemMap.get(key);
+              if (existing) {
+                // Jika item sudah ada dari Firestore atau input user,
+                // pertahankan kategori, deskripsi, tanggal, dan lokasi asli pilihan user
+                const chosenCat = (existing.category && existing.category !== ('kegiatan' as any))
+                  ? existing.category
+                  : resolveGalleryCategory(item.category, item.title);
 
-                  itemMap.set(key, {
-                    ...item,
-                    category: chosenCat,
-                    description: existing.description && !existing.description.startsWith('Dokumentasi ') && !existing.description.includes('di Google Drive')
-                      ? existing.description
-                      : (item.description && !item.description.includes('di Google Drive') ? item.description : `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`),
-                    date: existing.date && existing.date !== 'Terbaru' ? existing.date : item.date,
-                    location: existing.location || item.location,
-                    participants: existing.participants || item.participants
-                  });
-                } else {
-                  // Jika item dari Google Drive belum ada di cache Firestore/lokal,
-                  // bersihkan kategori agar sesuai pilihan jenis kegiatan dan deskripsi rapi
-                  const inferredCategory = resolveGalleryCategory(item.category, item.title);
-                  const cleanDesc = item.description && item.description.startsWith('Dokumentasi ') && item.description.includes('di Google Drive')
-                    ? `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`
-                    : (item.description || `Dokumentasi kegiatan ${item.title}.`);
+                const finalImages = (item.images && item.images.length >= (existing.images?.length || 0))
+                  ? item.images
+                  : (existing.images || item.images || [item.imageUrl]);
 
-                  itemMap.set(key, {
-                    ...item,
-                    category: inferredCategory,
-                    description: cleanDesc
-                  });
-                }
+                itemMap.set(key, {
+                  ...item,
+                  id: existing.id || item.id,
+                  category: chosenCat,
+                  description: existing.description && !existing.description.startsWith('Dokumentasi ') && !existing.description.includes('di Google Drive')
+                    ? existing.description
+                    : (item.description && !item.description.includes('di Google Drive') ? item.description : `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`),
+                  date: existing.date && existing.date !== 'Terbaru' ? existing.date : item.date,
+                  location: existing.location || item.location,
+                  participants: existing.participants || item.participants,
+                  images: finalImages,
+                  imageUrl: finalImages[0] || item.imageUrl
+                });
+              } else {
+                // Jika item dari Google Drive belum ada di cache Firestore/lokal,
+                // bersihkan kategori agar sesuai pilihan jenis kegiatan dan deskripsi rapi
+                const inferredCategory = resolveGalleryCategory(item.category, item.title);
+                const cleanDesc = item.description && item.description.startsWith('Dokumentasi ') && item.description.includes('di Google Drive')
+                  ? `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`
+                  : (item.description || `Dokumentasi kegiatan ${item.title}.`);
+
+                itemMap.set(key, {
+                  ...item,
+                  category: inferredCategory,
+                  description: cleanDesc
+                });
               }
             }
           });
@@ -698,9 +731,27 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
               map.set(key, item);
             }
           });
+
+          const findExistingKeyInMap = (it: GalleryItem): string | undefined => {
+            const normTitle = it.title?.trim().toLowerCase();
+            for (const [k, v] of map.entries()) {
+              if (it.driveFolderUrl && v.driveFolderUrl && it.driveFolderUrl === v.driveFolderUrl) {
+                return k;
+              }
+              if (normTitle && v.title?.trim().toLowerCase() === normTitle) {
+                return k;
+              }
+              if (it.id === v.id) {
+                return k;
+              }
+            }
+            return undefined;
+          };
+
           remoteItems.forEach(item => {
             if (item.id !== 'gal-1' && item.id !== 'gal-2') {
-              const key = item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
+              const matchedKey = findExistingKeyInMap(item);
+              const key = matchedKey || item.driveFolderUrl || (item.title ? item.title.trim().toLowerCase() : item.id);
               const existing = map.get(key);
               if (existing) {
                 const chosenCat = (item.category && item.category !== ('kegiatan' as any))
@@ -708,6 +759,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                   : ((existing.category && existing.category !== ('kegiatan' as any))
                     ? existing.category
                     : resolveGalleryCategory(item.category, item.title));
+
+                const mergedImages = (existing.images && existing.images.length > (item.images?.length || 0))
+                  ? existing.images
+                  : (item.images && item.images.length > 0 ? item.images : existing.images);
 
                 map.set(key, {
                   ...item,
@@ -719,7 +774,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                       : (item.description && !item.description.includes('di Google Drive') ? item.description : `Dokumentasi kegiatan ${item.title} bersama IRMAS Masjid Jami'e Al-Ikhlas.`)),
                   date: (item.date && item.date !== 'Terbaru') ? item.date : (existing.date || item.date),
                   location: item.location || existing.location,
-                  participants: item.participants || existing.participants
+                  participants: item.participants || existing.participants,
+                  images: mergedImages,
+                  imageUrl: (mergedImages && mergedImages[0]) || item.imageUrl || existing.imageUrl
                 });
               } else {
                 map.set(key, {
@@ -767,7 +824,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
   const categories: { id: GalleryCategory; label: string; icon: typeof LayoutGrid }[] = [
     { id: 'semua', label: 'Semua Galeri', icon: LayoutGrid },
     { id: 'kajian', label: 'Kajian Remaja', icon: BookOpen },
-    { id: 'sosial', label: 'Baksos & Sosial', icon: HeartHandshake },
+    { id: 'sosial', label: 'Bakti & Sosial', icon: HeartHandshake },
     { id: 'phbi', label: 'PHBI Akbar', icon: Sparkles },
     { id: 'rihlah', label: 'Rihlah & Alam', icon: Compass },
     { id: 'pelatihan', label: 'Pelatihan Skill', icon: GraduationCap },
@@ -1013,7 +1070,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     }
 
     // 4. Update local state
-    setItems(prev => prev.filter(it => it.id !== targetItem.id));
+    setItems(prev => prev.filter(it => it.id !== targetItem.id && (!targetItem.driveFolderUrl || it.driveFolderUrl !== targetItem.driveFolderUrl)));
 
     if (onDeleteItem) {
       try {
@@ -1536,7 +1593,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
                     >
                       <option value="kajian">Kajian Remaja</option>
-                      <option value="sosial">Baksos & Sosial</option>
+                      <option value="sosial">Bakti & Sosial</option>
                       <option value="phbi">PHBI Akbar</option>
                       <option value="rihlah">Rihlah & Alam</option>
                       <option value="pelatihan">Pelatihan Skill</option>

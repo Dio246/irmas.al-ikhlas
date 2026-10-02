@@ -8,7 +8,7 @@ export interface CategoryInfo {
 export const CATEGORY_DEFINITIONS: CategoryInfo[] = [
   { id: 'semua', label: 'Semua Galeri' },
   { id: 'kajian', label: 'Kajian Remaja' },
-  { id: 'sosial', label: 'Baksos & Sosial' },
+  { id: 'sosial', label: 'Bakti & Sosial' },
   { id: 'phbi', label: 'PHBI Akbar' },
   { id: 'rihlah', label: 'Rihlah & Alam' },
   { id: 'pelatihan', label: 'Pelatihan Skill' },
@@ -36,8 +36,8 @@ export function formatCategoryLabel(categoryOrRaw: string | undefined, titleFall
     case 'kajian':
       return 'Kajian Remaja';
     case 'sosial':
-    case 'baksos':
-      return 'Baksos & Sosial';
+    case 'bakti':
+      return 'Bakti & Sosial';
     case 'rihlah':
       return 'Rihlah & Alam';
     case 'pelatihan':
@@ -56,8 +56,8 @@ export function formatCategoryLabel(categoryOrRaw: string | undefined, titleFall
   if (normalized.includes('kajian') || normalized.includes('taklim') || normalized.includes('halaqah')) {
     return 'Kajian Remaja';
   }
-  if (normalized.includes('sosial') || normalized.includes('baksos') || normalized.includes('santunan') || normalized.includes('peduli')) {
-    return 'Baksos & Sosial';
+  if (normalized.includes('sosial') || normalized.includes('bakti') || normalized.includes('santunan') || normalized.includes('peduli')) {
+    return 'Bakti & Sosial';
   }
   if (normalized.includes('rihlah') || normalized.includes('tadabbur') || normalized.includes('kemah') || normalized.includes('camping')) {
     return 'Rihlah & Alam';
@@ -88,8 +88,8 @@ export function guessCategoryFromText(text: string): string {
   if (lower.includes('maulid') || lower.includes('isra') || lower.includes('mi\'raj') || lower.includes('miraj') || lower.includes('muharram') || lower.includes('phbi') || lower.includes('idul fitri') || lower.includes('idul adha') || lower.includes('nuzulul')) {
     return 'PHBI Akbar';
   }
-  if (lower.includes('baksos') || lower.includes('sosial') || lower.includes('santunan') || lower.includes('donor') || lower.includes('peduli') || lower.includes('gotong royong') || lower.includes('kebersihan')) {
-    return 'Baksos & Sosial';
+  if (lower.includes('bakti') || lower.includes('sosial') || lower.includes('santunan') || lower.includes('donor') || lower.includes('peduli') || lower.includes('gotong royong') || lower.includes('kebersihan')) {
+    return 'Bakti & Sosial';
   }
   if (lower.includes('rihlah') || lower.includes('tadabbur') || lower.includes('alam') || lower.includes('camping') || lower.includes('kemah') || lower.includes('outbound') || lower.includes('gowes') || lower.includes('futsal')) {
     return 'Rihlah & Alam';
@@ -115,7 +115,7 @@ export function resolveGalleryCategory(categoryOrRaw: string | undefined, titleF
   switch (label) {
     case 'PHBI Akbar':
       return 'phbi';
-    case 'Baksos & Sosial':
+    case 'Bakti & Sosial':
       return 'sosial';
     case 'Rihlah & Alam':
       return 'rihlah';

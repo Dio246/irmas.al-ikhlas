@@ -95,6 +95,13 @@ export async function saveGalleryItemToFirestore(item: GalleryItem): Promise<voi
     });
 
     await Promise.race([writePromise, timeoutPromise]);
+
+    // Clean up any stale tombstone in deleted_gallery_items so this item is never blocked
+    try {
+      await deleteDoc(doc(db, DELETED_GALLERY_COLLECTION, item.id));
+    } catch {
+      // quiet cleanup
+    }
   } catch (error) {
     console.error('Gagal menyimpan dokumentasi ke Firestore:', error);
     // Non-fatal: Local state and IndexedDB already retain the item
@@ -254,7 +261,6 @@ export async function getDeletedGalleryIdsFromFirestore(): Promise<Set<string>> 
       const data = d.data();
       if (data?.id) ids.add(data.id);
       if (data?.folderUrl) ids.add(data.folderUrl);
-      if (data?.title) ids.add(data.title.trim().toLowerCase());
     });
     return ids;
   } catch {
