@@ -177,7 +177,7 @@ export async function uploadToGoogleDriveNoLogin(
 export async function deleteFromGoogleDriveNoLogin(
   fileId: string,
   scriptUrl?: string,
-  extra?: { folderUrl?: string; folderId?: string }
+  extra?: { folderUrl?: string; folderId?: string; fileIds?: string[] }
 ): Promise<{ success: boolean; message: string }> {
   const targetUrl = getConfiguredScriptUrl(scriptUrl);
 
@@ -185,44 +185,72 @@ export async function deleteFromGoogleDriveNoLogin(
     return { success: false, message: 'URL Google Apps Script belum dikonfigurasi.' };
   }
 
+  const resolvedFolderId = extra?.folderId || (extra?.folderUrl ? (extra.folderUrl.match(/folders\/([a-zA-Z0-9_-]+)/)?.[1] || '') : '');
+
   try {
     const payload = {
-      action: 'delete',
-      fileId,
+      action: resolvedFolderId && (!fileId || fileId.length < 5) ? 'delete_folder' : 'delete',
+      fileId: fileId || '',
+      fileIds: extra?.fileIds || [],
       folderUrl: extra?.folderUrl || '',
-      folderId: extra?.folderId || ''
+      folderId: resolvedFolderId
     };
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    let isSuccess = false;
+    let message = '';
 
-    window.clearTimeout(timeoutId);
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      return { success: false, message: `HTTP ${response.status} saat menghapus dari Google Drive.` };
+      window.clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const text = await response.text();
+        try {
+          const res = JSON.parse(text);
+          if (res.status === 'success' || res.status === 'ok') {
+            isSuccess = true;
+            message = res.message || 'Foto dan data berhasil dihapus dari Google Drive.';
+          }
+        } catch {
+          // If text returned without JSON
+          if (!text.includes('error')) {
+            isSuccess = true;
+            message = 'Permintaan hapus diproses.';
+          }
+        }
+      }
+    } catch {
+      // POST network or CORS issue, proceed to GET fallback
     }
 
-    const text = await response.text();
-    let res: any = {};
-    try {
-      res = JSON.parse(text);
-    } catch {
-      // If Apps Script does not return JSON, check text
-      return { success: true, message: 'Permintaan hapus diproses.' };
+    // Fallback: If POST didn't report success, try GET query delete
+    if (!isSuccess && resolvedFolderId) {
+      try {
+        const fallbackUrl = `${targetUrl}?action=delete&folderId=${encodeURIComponent(resolvedFolderId)}&t=${Date.now()}`;
+        const getRes = await fetch(fallbackUrl, { method: 'GET', cache: 'no-store' });
+        if (getRes.ok) {
+          isSuccess = true;
+          message = 'Folder kegiatan berhasil dihapus dari Google Drive.';
+        }
+      } catch {
+        // quiet fallback failure
+      }
     }
 
     return {
-      success: res.status === 'success' || res.status === 'ok',
-      message: res.message || 'Foto berhasil dihapus dari Google Drive.'
+      success: isSuccess,
+      message: message || 'Perintah hapus dari Google Drive telah dikirim.'
     };
   } catch (error: any) {
     return {

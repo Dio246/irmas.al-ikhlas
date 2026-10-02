@@ -99,6 +99,19 @@ export async function saveGalleryItemToFirestore(item: GalleryItem): Promise<voi
     // Clean up any stale tombstone in deleted_gallery_items so this item is never blocked
     try {
       await deleteDoc(doc(db, DELETED_GALLERY_COLLECTION, item.id));
+      if (item.driveFolderUrl) {
+        const folderMatch = item.driveFolderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
+        if (folderMatch) {
+          await deleteDoc(doc(db, DELETED_GALLERY_COLLECTION, `gdrive-folder-${folderMatch[1]}`));
+        }
+        const delSnap = await getDocs(collection(db, DELETED_GALLERY_COLLECTION));
+        for (const d of delSnap.docs) {
+          const data = d.data();
+          if (data?.folderUrl === item.driveFolderUrl || (item.title && data?.title && data.title.trim().toLowerCase() === item.title.trim().toLowerCase())) {
+            await deleteDoc(doc(db, DELETED_GALLERY_COLLECTION, d.id));
+          }
+        }
+      }
     } catch {
       // quiet cleanup
     }
@@ -228,14 +241,27 @@ export async function deleteGalleryItemFromFirestore(
   extraData?: { title?: string; folderUrl?: string; fileIds?: string[] }
 ): Promise<void> {
   try {
-    // 1. Delete from main active collection
+    // 1. Delete by direct itemId
     await deleteDoc(doc(db, GALLERY_COLLECTION, itemId));
+
+    // 2. Also search and delete ANY doc in gallery_items matching folderUrl or title
+    const snapshot = await getDocs(collection(db, GALLERY_COLLECTION));
+    const targetTitleNorm = extraData?.title ? extraData.title.trim().toLowerCase() : '';
+    for (const d of snapshot.docs) {
+      const data = d.data();
+      const matchFolder = extraData?.folderUrl && data?.driveFolderUrl && data.driveFolderUrl === extraData.folderUrl;
+      const matchTitle = targetTitleNorm && data?.title && data.title.trim().toLowerCase() === targetTitleNorm;
+      const matchId = d.id === itemId;
+      if (matchFolder || matchTitle || matchId) {
+        await deleteDoc(doc(db, GALLERY_COLLECTION, d.id));
+      }
+    }
   } catch (error) {
     console.warn('Gagal menghapus item dari gallery_items:', error);
   }
 
   try {
-    // 2. Write tombstone to deleted_gallery_items so all clients purge it from memory & cache
+    // 3. Write tombstone to deleted_gallery_items so all clients purge it from memory & cache
     const tombstoneRef = doc(db, DELETED_GALLERY_COLLECTION, itemId);
     await setDoc(tombstoneRef, {
       id: itemId,
@@ -249,21 +275,45 @@ export async function deleteGalleryItemFromFirestore(
   }
 }
 
+export interface DeletedGalleryInfo {
+  deletedIds: Set<string>;
+  deletedAtMap: Map<string, number>;
+}
+
 /**
- * Retrieves all deleted item identifiers so client can filter them out immediately
+ * Retrieves all deleted item identifiers and deletion timestamps so client can filter them out accurately
  */
-export async function getDeletedGalleryIdsFromFirestore(): Promise<Set<string>> {
+export async function getDeletedGalleryInfoFromFirestore(): Promise<DeletedGalleryInfo> {
   try {
     const snapshot = await getDocs(collection(db, DELETED_GALLERY_COLLECTION));
     const ids = new Set<string>();
+    const atMap = new Map<string, number>();
+
     snapshot.docs.forEach(d => {
       ids.add(d.id);
       const data = d.data();
-      if (data?.id) ids.add(data.id);
-      if (data?.folderUrl) ids.add(data.folderUrl);
+      const delAt = Number(data?.deletedAt) || 0;
+      atMap.set(d.id, delAt);
+
+      if (data?.id) {
+        ids.add(data.id);
+        atMap.set(data.id, delAt);
+      }
+      if (data?.folderUrl) {
+        ids.add(data.folderUrl);
+        atMap.set(data.folderUrl, delAt);
+      }
     });
-    return ids;
+    return { deletedIds: ids, deletedAtMap: atMap };
   } catch {
-    return new Set<string>();
+    return { deletedIds: new Set<string>(), deletedAtMap: new Map<string, number>() };
   }
+}
+
+/**
+ * Backwards compatible helper for getDeletedGalleryIdsFromFirestore
+ */
+export async function getDeletedGalleryIdsFromFirestore(): Promise<Set<string>> {
+  const info = await getDeletedGalleryInfoFromFirestore();
+  return info.deletedIds;
 }

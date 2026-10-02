@@ -86,7 +86,8 @@ import {
   deleteGalleryItemFromFirestore,
   syncLocalItemsToFirestore,
   getGalleryItemsFromFirestore,
-  getDeletedGalleryIdsFromFirestore
+  getDeletedGalleryIdsFromFirestore,
+  getDeletedGalleryInfoFromFirestore
 } from '../lib/firebaseGalleryService';
 import {
   deletePhotoFromGoogleDrive
@@ -555,8 +556,11 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         loadCustomGalleryItems().catch(() => [])
       ]);
 
-      // 3. Ambil daftar item yang telah dihapus agar tidak muncul kembali
-      const deletedIds = await getDeletedGalleryIdsFromFirestore().catch(() => new Set<string>());
+      // 3. Ambil daftar item yang telah dihapus beserta timestamp penghapusannya
+      const { deletedIds, deletedAtMap } = await getDeletedGalleryInfoFromFirestore().catch(() => ({
+        deletedIds: new Set<string>(),
+        deletedAtMap: new Map<string, number>()
+      }));
 
       if (isMountedRef.current) {
         const itemMap = new Map<string, GalleryItem>();
@@ -579,8 +583,25 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         };
 
         const isItemDeleted = (it: GalleryItem): boolean => {
-          if (deletedIds.has(it.id)) return true;
-          if (it.driveFolderUrl && deletedIds.has(it.driveFolderUrl)) return true;
+          const itemCreatedAt = it.createdAt || 0;
+
+          if (deletedIds.has(it.id)) {
+            const delTime = deletedAtMap.get(it.id) || 0;
+            // Jika item diunggah/diperbarui setelah waktu penghapusan, jangan disembunyikan
+            if (itemCreatedAt && delTime && itemCreatedAt > delTime) {
+              return false;
+            }
+            return true;
+          }
+
+          if (it.driveFolderUrl && deletedIds.has(it.driveFolderUrl)) {
+            const delTime = deletedAtMap.get(it.driveFolderUrl) || 0;
+            if (itemCreatedAt && delTime && itemCreatedAt > delTime) {
+              return false;
+            }
+            return true;
+          }
+
           return false;
         };
 
@@ -1037,17 +1058,18 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       ? targetItem.driveFolderUrl.split('/folders/')[1]?.split('?')[0] || ''
       : '';
 
-    for (const fid of fileIdsToDelete) {
-      try {
-        // Try deletion via Google Apps Script (Works without user OAuth login)
-        await deleteFromGoogleDriveNoLogin(fid, scriptUrl.trim(), {
-          folderUrl: targetItem.driveFolderUrl,
-          folderId
-        });
-      } catch (scriptErr) {
-        console.warn('Gagal delete via Apps Script:', scriptErr);
-      }
+    // 2. Remove file(s) and activity folder from Google Drive via Apps Script
+    try {
+      await deleteFromGoogleDriveNoLogin(fileIdsToDelete[0] || '', scriptUrl.trim(), {
+        folderUrl: targetItem.driveFolderUrl,
+        folderId,
+        fileIds: fileIdsToDelete
+      });
+    } catch (scriptErr) {
+      console.warn('Gagal delete folder via Apps Script:', scriptErr);
+    }
 
+    for (const fid of fileIdsToDelete) {
       // If user has an active OAuth token, also execute drive.files.delete via Google Drive API
       if (driveToken) {
         try {
@@ -1070,7 +1092,12 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     }
 
     // 4. Update local state
-    setItems(prev => prev.filter(it => it.id !== targetItem.id && (!targetItem.driveFolderUrl || it.driveFolderUrl !== targetItem.driveFolderUrl)));
+    setItems(prev => prev.filter(it => {
+      const matchId = it.id === targetItem.id;
+      const matchFolder = Boolean(targetItem.driveFolderUrl && it.driveFolderUrl && it.driveFolderUrl === targetItem.driveFolderUrl);
+      const matchTitle = Boolean(targetItem.title && it.title && it.title.trim().toLowerCase() === targetItem.title.trim().toLowerCase());
+      return !matchId && !matchFolder && !matchTitle;
+    }));
 
     if (onDeleteItem) {
       try {
