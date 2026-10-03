@@ -96,18 +96,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNavClick('pengurus')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
-                  Struktur Pengurus
-                </button>
-              </li>
-              <li>
                 <button onClick={() => handleNavClick('galeri')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
                   Galeri Kegiatan
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('kontak')} className="hover:text-emerald-300 transition-colors cursor-pointer text-left py-1 inline-block min-h-[32px]">
-                  Kontak & Informasi
                 </button>
               </li>
             </ul>
