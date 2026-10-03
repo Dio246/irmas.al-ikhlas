@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, Sparkles, MapPin, Users } from 'lucide-react';
+import { Image as ImageIcon, MapPin, Users } from 'lucide-react';
 import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
@@ -44,12 +44,6 @@ export const Hero: React.FC<HeroProps> = ({
           <p className="text-[11px] sm:text-xs text-emerald-700/80 mt-1 font-medium italic">
             "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang"
           </p>
-        </div>
-
-        {/* Tag Badge */}
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-emerald-100/90 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-bold px-3 sm:px-3.5 py-1.5 rounded-full mb-4 sm:mb-6 shadow-xs max-w-full">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span className="truncate">Pedoman AD/ART Periode {mosqueProfile.activePeriod}</span>
         </div>
 
         {/* IRMAS Official Logo */}

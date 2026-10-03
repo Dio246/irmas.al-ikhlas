@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Mail, Phone, Instagram, Youtube, Facebook, Video, ArrowUp, ShieldCheck, ExternalLink, Globe } from 'lucide-react';
+import { MapPin, Mail, Phone, Instagram, Youtube, Facebook, Video, ArrowUp, ExternalLink, Globe } from 'lucide-react';
 import { mosqueProfile } from '../data/irmasData';
 import { IrmasLogo } from './IrmasLogo';
 
@@ -79,13 +79,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <p className="text-xs text-slate-300 leading-relaxed text-left">
               Ikatan Remaja Masjid (IRMAS) Masjid Jamie “Al-Ikhlas” berfungsi sebagai sarana pembinaan aqidah, akhlak, serta ukhuwah Islamiah pemuda di lingkungan Graha Bhakti Kodam Jaya & Cittavile, Jatibaru, Cikarang Timur.
             </p>
-
-            <div className="pt-1 flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-emerald-300 bg-emerald-900/80 px-3 py-1 rounded-lg border border-emerald-800">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>AD/ART Periode {mosqueProfile.activePeriod}</span>
-              </span>
-            </div>
           </div>
 
           {/* 2. Navigation Quick Links (col-span-2) */}

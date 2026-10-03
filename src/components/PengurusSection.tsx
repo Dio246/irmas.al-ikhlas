@@ -57,13 +57,10 @@ export const PengurusSection: React.FC<PengurusSectionProps> = ({ embeddedInTab 
 
   const content = (
     <div className="space-y-8 sm:space-y-10">
-      {/* Leadership Header Badge */}
+      {/* Leadership Header */}
       <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white rounded-2xl p-4.5 sm:p-6 shadow-md flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-8 sm:mb-10">
         <div>
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-950/60 px-2.5 sm:px-3 py-1 rounded-full border border-emerald-700 inline-block">
-            Kepengurusan IRMAS Periode {mosqueProfile.activePeriod}
-          </span>
-          <h3 className="text-base sm:text-lg md:text-xl font-bold mt-2 leading-snug">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold leading-snug">
             Ikatan Remaja Masjid Jamie Al-Ikhlas
           </h3>
           <p className="text-xs text-emerald-100 mt-1 leading-relaxed max-w-2xl">

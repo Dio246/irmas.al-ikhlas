@@ -44,10 +44,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10">
-          <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full border border-emerald-100 mb-2.5 shadow-xs">
-            <Shield className="w-3.5 h-3.5 shrink-0" />
-            <span>Pedoman Resmi & Identitas Organisasi</span>
-          </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
             Profil & Landasan IRMAS
           </h2>
@@ -115,10 +111,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <div className="animate-tab-fade grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               
               <div className="md:col-span-1 lg:col-span-6 space-y-4 sm:space-y-5">
-                <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">
-                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                  <span>Identitas & Tempat Pendirian</span>
-                </div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 leading-snug">
                   Wadah Pembinaan Remaja Masjid Jamie Al-Ikhlas
                 </h3>

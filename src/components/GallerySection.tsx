@@ -451,12 +451,61 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ item, getCategoryLabel, onS
   );
 };
 
+/**
+ * Konversi string tanggal bahasa Indonesia ke timestamp milidetik untuk perbandingan kronologis.
+ */
+export const parseIndonesianDateToTimestamp = (dateStr?: string): number => {
+  if (!dateStr || dateStr === 'Terbaru') return 0;
+  const monthMap: Record<string, number> = {
+    januari: 0, january: 0, jan: 0,
+    februari: 1, february: 1, feb: 1,
+    maret: 2, march: 2, mar: 2,
+    april: 3, apr: 3,
+    mei: 4, may: 4,
+    juni: 5, june: 5, jun: 5,
+    juli: 6, july: 6, jul: 6,
+    agustus: 7, august: 7, agu: 7, aug: 7,
+    september: 8, sep: 8, sept: 8,
+    oktober: 9, october: 9, okt: 9, oct: 9,
+    november: 10, nov: 10,
+    desember: 11, december: 11, des: 11, dec: 11
+  };
+  const parts = dateStr.trim().toLowerCase().split(/\s+/);
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0], 10) || 1;
+    const month = monthMap[parts[1]] ?? 0;
+    const year = parseInt(parts[2], 10) || 2025;
+    return new Date(year, month, day, 12, 0, 0).getTime();
+  }
+  return 0;
+};
+
+export const getGalleryItemTimestamp = (item: GalleryItem): number => {
+  if (item.createdAt && item.createdAt > 1000000000) {
+    return item.createdAt;
+  }
+  const parsed = parseIndonesianDateToTimestamp(item.date);
+  if (parsed > 0) return parsed;
+  return item.createdAt || 0;
+};
+
+/**
+ * Urutkan album galeri:
+ * - Album paling baru di awal (sebelah kiri pada desktop / paling atas pada mobile).
+ * - Album paling lama di akhir (sebelah kanan pada desktop / paling bawah pada mobile).
+ */
+export const sortGalleryItemsNewestFirst = (itemList: GalleryItem[]): GalleryItem[] => {
+  return [...itemList].sort((a, b) => {
+    return getGalleryItemTimestamp(b) - getGalleryItemTimestamp(a);
+  });
+};
+
 export const GallerySection: React.FC<GallerySectionProps> = ({ 
   onSelectImage, 
   onDeleteItem,
   registerDeleteHandler 
 }) => {
-  // Dokumentasi bawaan website. Selalu dipertahankan di urutan paling awal.
+  // Dokumentasi bawaan website dengan timestamp riil masing-masing
   const defaultGalleryItems = useMemo<GalleryItem[]>(() => [
     {
       id: 'gal-1',
@@ -470,7 +519,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       highlight: true,
       isUserUploaded: false,
       storageType: 'local',
-      createdAt: 1
+      createdAt: 1734700200000 // 20 Desember 2024 (Paling lama)
     },
     {
       id: 'gal-2',
@@ -484,12 +533,12 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       highlight: true,
       isUserUploaded: false,
       storageType: 'local',
-      createdAt: 2
+      createdAt: 1758976200000 // 27 September 2025
     }
   ], []);
 
-  // Dua dokumentasi bawaan selalu ada; dokumentasi hasil upload ditambahkan setelahnya.
-  const [items, setItems] = useState<GalleryItem[]>(defaultGalleryItems);
+  // Album diurutkan terbaru di kiri/atas dan terlama di kanan/bawah
+  const [items, setItems] = useState<GalleryItem[]>(() => sortGalleryItemsNewestFirst(defaultGalleryItems));
 
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -699,9 +748,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         const dynamicItems = Array.from(itemMap.values()).filter(
           item => item.id !== 'gal-1' && item.id !== 'gal-2'
         );
-        // Dokumentasi terbaru hasil upload di Google Drive ditampilkan paling atas di antara dokumentasi upload
-        dynamicItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        setItems([...defaultGalleryItems, ...dynamicItems]);
+        // Urutkan seluruh album: album paling baru di kiri/atas, album paling lama di kanan/bawah
+        setItems(sortGalleryItemsNewestFirst([...defaultGalleryItems, ...dynamicItems]));
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -713,10 +761,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
       try {
         const fsItems = await getGalleryItemsFromFirestore();
         if (isMountedRef.current && fsItems && fsItems.length > 0) {
-          const uploadedItems = fsItems
-            .filter(item => item.id !== 'gal-1' && item.id !== 'gal-2')
-            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          setItems([...defaultGalleryItems, ...uploadedItems]);
+          const uploadedItems = fsItems.filter(item => item.id !== 'gal-1' && item.id !== 'gal-2');
+          setItems(sortGalleryItemsNewestFirst([...defaultGalleryItems, ...uploadedItems]));
         }
       } catch {}
     } finally {
@@ -808,8 +854,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
             }
           });
           const list = Array.from(map.values()).filter(item => item.id !== 'gal-1' && item.id !== 'gal-2');
-          list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          return [...defaultGalleryItems, ...list];
+          return sortGalleryItemsNewestFirst([...defaultGalleryItems, ...list]);
         });
       }
     });
@@ -852,15 +897,18 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     { id: 'ramadhan', label: 'Semarak Ramadhan', icon: Moon },
   ];
 
-  const filteredItems = items.filter((item) => {
-    const resolvedCat = resolveGalleryCategory(item.category, item.title);
-    const matchesCategory = activeCategory === 'semua' || item.category === activeCategory || resolvedCat === activeCategory;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          formatCategoryLabel(item.category, item.title).toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredItems = useMemo(() => {
+    const matched = items.filter((item) => {
+      const resolvedCat = resolveGalleryCategory(item.category, item.title);
+      const matchesCategory = activeCategory === 'semua' || item.category === activeCategory || resolvedCat === activeCategory;
+      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            formatCategoryLabel(item.category, item.title).toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+    return sortGalleryItemsNewestFirst(matched);
+  }, [items, activeCategory, searchQuery]);
 
   const getCategoryLabel = (cat: GalleryCategory, itemTitle?: string) => {
     return formatCategoryLabel(cat, itemTitle);
@@ -969,10 +1017,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
   // Persist gallery items (saved to local state, IndexedDB, and Cloud Firestore)
   const persistNewItem = async (newItem: GalleryItem) => {
-    // 1. Immediately update UI state so user sees their new activity right away
+    // 1. Immediately update UI state so user sees their new activity right away at the top/left
     setItems(prev => {
-      if (prev.some(p => p.id === newItem.id)) return prev;
-      return [...prev, newItem];
+      const remaining = prev.filter(p => p.id !== newItem.id);
+      return sortGalleryItemsNewestFirst([newItem, ...remaining]);
     });
 
     // 2. Fast local persistence in IndexedDB / localStorage
@@ -1231,10 +1279,6 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full border border-emerald-100 mb-2.5">
-            <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-            <span>Dokumentasi Syiar & Ukhuwah</span>
-          </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
             Galeri Kegiatan IRMAS
           </h2>
