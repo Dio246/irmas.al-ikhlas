@@ -63,7 +63,7 @@ export const visionMission = {
 export const pengurusList: Pengurus[] = [
   {
     id: "p-pembina",
-    name: "Ust. Ahmad Jarno",
+    name: "Ustadz Ahmad Jarno",
     role: "Pembina IRMAS",
     division: "BPH",
     avatar: "/Foto BPH/Pembina/pembina irmas.jpeg",
@@ -73,7 +73,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-pembantu-pembina-1",
-    name: "Ahmad Sofyan",
+    name: "Kang Ahmad Sofyan",
     role: "Pembantu Pembina 1",
     division: "BPH",
     avatar: "/Foto BPH/Pembina/pembantu pembina 1.jpeg",
@@ -84,7 +84,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-pembantu-pembina-2",
-    name: "Dio Surya Pratama",
+    name: "Kang Dio Surya Pratama",
     role: "Pembantu Pembina 2",
     division: "BPH",
     avatar: "/Foto BPH/Pembina/pembantu pembina 2.jpeg",
@@ -94,7 +94,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-ketua",
-    name: "M. Addym Jaka Anugrah",
+    name: "Rekan Muhammad Addym Jaka Anugrah",
     role: "Ketua IRMAS",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/ketua irmas.jpeg",
@@ -105,7 +105,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-wakil",
-    name: "Danish Alfisyahri P. S.",
+    name: "Rekan Danish Alfisyahri Putra Sanial",
     role: "Wakil Ketua",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/wakil ketua irmas.jpeg",
@@ -116,7 +116,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-sekretaris-1",
-    name: "Raihana Hanno M",
+    name: "Rekanita Raihana Hanno Magani",
     role: "Sekretaris 1",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/sekertaris 1.jpeg",
@@ -127,7 +127,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-sekretaris-2",
-    name: "Talita Hasna Salsabila",
+    name: "Rekanita Talita Hasna Salsabila",
     role: "Sekretaris 2",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/sekertaris 2.jpeg",
@@ -138,7 +138,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-bendahara-1",
-    name: "Sabrina Zakiyyah Amani",
+    name: "Rekanita Sabrina Zakiyyah Amani",
     role: "Bendahara 1",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/bendahara 1.jpeg",
@@ -149,7 +149,7 @@ export const pengurusList: Pengurus[] = [
   },
   {
     id: "p-bendahara-2",
-    name: "Alifah Huwaida",
+    name: "Rekanita Alifah Huwaida",
     role: "Bendahara 2",
     division: "BPH",
     avatar: "/Foto BPH/Struktur/bendahara 2.jpeg",
